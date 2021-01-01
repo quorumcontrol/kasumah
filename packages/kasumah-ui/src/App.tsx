@@ -1,25 +1,26 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import {
+  ChakraProvider,
+  CSSReset,
+  localStorageManager,
+  extendTheme
+} from "@chakra-ui/react";
+import { IndexPage } from "./pages/Index";
+
+// 2. declare your configuration, these are the defaults
+const config = {
+  useSystemColorMode: true,
+  initialColorMode: "light",
+}
+// 3. extend the theme
+const customTheme = extendTheme({ config })
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+      <ChakraProvider theme={customTheme} colorModeManager={localStorageManager}>
+        <CSSReset />
+        <IndexPage />
+      </ChakraProvider>
   );
 }
 
