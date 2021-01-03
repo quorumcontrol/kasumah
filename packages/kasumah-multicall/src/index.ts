@@ -3,6 +3,9 @@ import { Contract, providers } from 'ethers'
 import { FunctionFragment } from 'ethers/lib/utils'
 import DataLoader from 'dataloader'
 
+// matic mumbai
+setMulticallAddress(80001, '0x41eB847bD788F3219254371212C947793C392374')
+
 export class MulticallWrapper {
     private ethcallProvider: Provider
     private dataLoader:DataLoader<ContractCall, any>
@@ -15,7 +18,6 @@ export class MulticallWrapper {
     }
 
     private async doCalls(calls:readonly ContractCall[]) {
-        console.log('calls: ', calls)
         return this.ethcallProvider.all(calls as ContractCall[])
     }
 
@@ -55,3 +57,5 @@ export class MulticallWrapper {
         return newContract as any as T
     }
 }
+
+export default MulticallWrapper

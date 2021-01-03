@@ -1,18 +1,23 @@
 {
   "name": "kasumah-multicall",
   "version": "0.0.0",
-  "description": "> TODO: description",
-  "author": "Topper Bowers <topper@toppingdesign.com>",
+  "description": "transparently wrap ethers contracts to use the Multicall contract",
+  "author": "Topper Bowers <topper@quorumcontrol.com>",
   "homepage": "",
   "license": "",
-  "main": "index.js",
+  "main": "dist/src/index.js",
   "scripts": {
-    "build": "hardhat compile && npm run typechain",
+    "build": "hardhat compile && npm run typechain && tsc",
     "typechain": "typechain 'artifacts/!(build-info)/**/+([a-zA-Z0-9]).json' --target ethers-v5",
     "local": "hardhat node",
     "start": "npm run local",
     "test": "hardhat test"
   },
+  "files": [
+    "dist",
+    "deployments",
+    "artifacts"
+  ],
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
@@ -21,6 +26,7 @@
     "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.19",
     "chai": "^4.2.0",
+    "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.2.1",
     "ethers": "^5.0.24",
     "hardhat": "^2.0.6",

@@ -3,42 +3,27 @@ import "@nomiclabs/hardhat-ethers"
 import { HardhatUserConfig } from "hardhat/config"
 import 'hardhat-deploy';
 import { NetworkUserConfig } from "hardhat/types";
-import fs from 'fs'
+import dotenv from 'dotenv'
+import { Wallet } from "ethers";
 
-// these tasks rely on types, which require a compile, but
-// at initial install the types aren't there and so you can't compile.
-// this lets a first run happen.
-if (!process.env.FIRST_RUN) {
+dotenv.config()
 
+const networks:Record<string,NetworkUserConfig> = {}
+
+if (process.env.CHAIN_ID) {
+  const wallet = Wallet.fromMnemonic(process.env.MNEMONIC!)
+
+  networks[process.env.CHAIN_ID] = {
+    url: process.env.RPC_URL,
+    chainId: parseInt(process.env.CHAIN_ID, 10),
+    accounts: [wallet.privateKey],
+  } 
 }
 
-interface NetworkSecrets {
-  privateKey: string
-}
-
-let secrets:{[key:string]:NetworkSecrets} = {}
-
-if (fs.existsSync('./secrets.json')) {
-  secrets = JSON.parse(fs.readFileSync('./secrets.json').toString())
-}
-
-let networks:{[key:string]:NetworkUserConfig} = {}
-
-// If you need to debug a bit and turn on console.log, you probably need to uncomment the below:
-networks['hardhat'] = {
-  // forking: {
-  //   url: `https://eth-mainnet.alchemyapi.io/v2/${secretsJSON['mainnet']['alchemyAPI']}`,
-  // },
-  // allowUnlimitedContractSize: true,
-}
 
 networks['mumbai'] = {
   url: 'https://rpc-mumbai.maticvigil.com/v1/c0ce8ac6dcee6f838f2d4cf83d16b6ca1493aa0b',
   chainId: 80001,
-}
-
-if (secrets['80001']) {
-  networks['mumbai'].accounts = [secrets['80001'].privateKey]
 }
 
 const config: HardhatUserConfig = {

@@ -5,8 +5,9 @@
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "declaration": true,
   },
-  "include": ["./scripts", "./test", "./deploy", "helpers"],
+  "include": ["./scripts", "./test", "./deploy", "helpers", "./src", "./types"],
   "files": ["./hardhat.config.ts"]
 }
