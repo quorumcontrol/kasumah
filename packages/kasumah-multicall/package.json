@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "description": "transparently wrap ethers contracts to use the Multicall contract",
   "author": "Topper Bowers <topper@quorumcontrol.com>",
-  "homepage": "",
-  "license": "",
+  "homepage": "https://github.com/quorumcontrol/kasumah/tree/main/packages/kasumah-multicall",
+  "license": "MIT",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "hardhat compile && npm run typechain && tsc",
