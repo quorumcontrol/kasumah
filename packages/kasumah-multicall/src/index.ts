@@ -1,9 +1,7 @@
-import { Contract as MulticallContract, ContractCall, Provider, setMulticallAddress } from 'ethers-multicall';
-import { Contract, ethers, providers } from 'ethers';
-import { FunctionFragment } from 'ethers/lib/utils';
-import DataLoader from 'dataloader';
-
-
+import { Contract as MulticallContract, ContractCall, Provider, setMulticallAddress } from 'ethers-multicall'
+import { Contract, providers } from 'ethers'
+import { FunctionFragment } from 'ethers/lib/utils'
+import DataLoader from 'dataloader'
 
 export class MulticallWrapper {
     private ethcallProvider: Provider
@@ -46,7 +44,7 @@ export class MulticallWrapper {
         // or modifying the original contract is that
         // Contract sets its properties as ReadOnly and so you cannot modify them
         // or else it throws a TypeError
-        
+
         const newContract = {
             ...contract,
             ...funcs,
