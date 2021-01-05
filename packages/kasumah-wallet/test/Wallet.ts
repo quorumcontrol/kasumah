@@ -21,7 +21,7 @@ describe("MulticallWrapper", () => {
     const signers = await ethers.getSigners()
     deployer = signers[0]
     alice = signers[1]
-    await deployCanonicals(ethers.provider, deployer)
+    await deployCanonicals(deployer)
     gnosisSafeFactory = new GnosisSafe__factory(deployer)
     // const gs = new GnosisSafe('0x6851D6fDFAfD08c0295C392436245E5bc78B0185', gsf.interface, deployer)
     masterCopy = gnosisSafeFactory.attach('0x6851D6fDFAfD08c0295C392436245E5bc78B0185')
@@ -29,6 +29,34 @@ describe("MulticallWrapper", () => {
     const proxyFactoryFactory = new GnosisSafeProxyFactory__factory(deployer)
     proxyFactory = proxyFactoryFactory.attach('0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B')
   });
+
+  it('can get a future address', async ()=> {
+    const nonce = 2
+
+    const setupData = await masterCopy.populateTransaction.setup([deployer.address], 1, addr0, '0x', addr0, addr0, 0, addr0)
+    if (!setupData.data) {
+        throw new Error("no setup data")
+    }
+
+    var futureAddr:string = ''
+    try {
+      await proxyFactory.calculateCreateProxyWithNonceAddress(masterCopy.address, setupData.data, nonce)
+    } catch (e) {
+      console.log('revert', e.stackTrace[0].message.toString('hex'))
+
+      console.dir(e, {depth: null})
+
+      futureAddr =  '0x' + e.stackTrace[0].message.toString('hex').substring(136, 136 + 40)
+
+    }
+    console.log('hi')
+
+    const walletTx = await proxyFactory.createProxyWithNonce(masterCopy.address, setupData.data, nonce)
+    const walletReceipt = await walletTx.wait()
+
+    const addr = walletReceipt.events![0].args?.proxy
+    expect(futureAddr).to.equal(addr.toLowerCase())
+  })
 
   it("sanity works", async () => {
     const setupData = await masterCopy.populateTransaction.setup([deployer.address], 1, addr0, '0x', addr0, addr0, 0, addr0)
