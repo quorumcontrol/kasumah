@@ -6,6 +6,8 @@ import { GnosisSafe } from '../types/ethers-contracts/GnosisSafe'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { OPERATION, signer } from "../src/helpers/txSigner";
 import { BigNumber, constants, utils, Wallet } from "ethers";
+import { safeFromAddr, WalletMaker } from "../src/wallet";
+import { send } from "process";
 
 const addr0 = ethers.constants.AddressZero
 
@@ -17,7 +19,11 @@ describe("MulticallWrapper", () => {
   let deployer:SignerWithAddress
   let alice:SignerWithAddress
 
-  before(async () => {
+  beforeEach(async () => {
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: []
+    })
     const signers = await ethers.getSigners()
     deployer = signers[0]
     alice = signers[1]
@@ -30,58 +36,31 @@ describe("MulticallWrapper", () => {
     proxyFactory = proxyFactoryFactory.attach('0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B')
   });
 
-  it('can get a future address', async ()=> {
-    const nonce = 2
+  it('gets a future address', async ()=> {
+    const walletMaker = new WalletMaker({signer: deployer, chainId: network.config.chainId!})
 
-    const setupData = await masterCopy.populateTransaction.setup([deployer.address], 1, addr0, '0x', addr0, addr0, 0, addr0)
-    if (!setupData.data) {
-        throw new Error("no setup data")
-    }
-
-    var futureAddr:string = ''
-    try {
-      await proxyFactory.calculateCreateProxyWithNonceAddress(masterCopy.address, setupData.data, nonce)
-    } catch (e) {
-      console.log('revert', e.stackTrace[0].message.toString('hex'))
-
-      console.dir(e, {depth: null})
-
-      futureAddr =  '0x' + e.stackTrace[0].message.toString('hex').substring(136, 136 + 40)
-
-    }
-    console.log('hi')
-
-    const walletTx = await proxyFactory.createProxyWithNonce(masterCopy.address, setupData.data, nonce)
-    const walletReceipt = await walletTx.wait()
-
-    const addr = walletReceipt.events![0].args?.proxy
-    expect(futureAddr).to.equal(addr.toLowerCase())
+    const futureAddr = await walletMaker.walletAddressForUser(deployer.address)
+    const realAddr = await walletMaker.createWallet(deployer.address)
+    expect(futureAddr).to.equal(realAddr)
   })
 
-  it("sanity works", async () => {
-    const setupData = await masterCopy.populateTransaction.setup([deployer.address], 1, addr0, '0x', addr0, addr0, 0, addr0)
-    if (!setupData.data) {
-        throw new Error("no setup data")
-    }
-    const walletTx = await proxyFactory.createProxyWithNonce(masterCopy.address, setupData.data, 1)
-    const walletReceipt = await walletTx.wait()
+  it("creates functional wallets", async () => {
+    const walletMaker = new WalletMaker({signer: deployer, chainId: network.config.chainId!})
 
-    const userWallet = gnosisSafeFactory.attach(walletReceipt.events![0].args?.proxy)
-    console.log('userWallet: ', userWallet.addres)
+    const walletAddr = await walletMaker.createWallet(deployer.address)
+    const userWallet = safeFromAddr(deployer, walletAddr)
 
-    console.log('sending ', (await deployer.getBalance()).toString())
     const sendTx = await deployer.sendTransaction({
         to: userWallet.address,
         from: deployer.address,
         value: utils.parseEther('1').toHexString(),
         gasLimit: 50000,
     })
-    console.log('sent')
+    await sendTx.wait()
 
     const halfEth = utils.parseEther('0.5')
 
     const sig = await signer(deployer, userWallet.address, alice.address, halfEth, '0x', OPERATION.CALL, 0, 0, 0, constants.AddressZero, constants.AddressZero, 0)
-    console.log('sig: ', sig.length)
     await userWallet.execTransaction(
         alice.address, 
         halfEth, 

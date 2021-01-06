@@ -48,8 +48,6 @@ export const signer = async function(signer:SignerWithAddress, verifyingContract
             nonce: BigNumber.from(nonce).toNumber()
         }
     }
-    console.log('after typed data')
-
 
     let sig = await (signer.provider as any).send("eth_signTypedData",[signer.address,typedData]);
 

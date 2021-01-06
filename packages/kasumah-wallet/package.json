@@ -32,6 +32,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@typechain/ethers-v5": "^5.0.0",
     "@types/chai": "^4.2.14",
+    "@types/debug": "^4.1.5",
     "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.19",
     "chai": "^4.2.0",
@@ -47,6 +48,7 @@
   },
   "dependencies": {
     "@gnosis.pm/safe-contracts": "^1.2.0",
-    "contract-proxy-kit": "^1.1.2"
+    "contract-proxy-kit": "^1.1.2",
+    "debug": "^4.3.1"
   }
 }

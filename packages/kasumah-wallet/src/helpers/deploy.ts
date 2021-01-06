@@ -1,6 +1,9 @@
 import { BigNumber, utils, providers, Signer } from "ethers";
 import safe111AndFactoryConfig from "./safe111AndFactoryConfig.json"
 import safe120Config from "./safe120Config.json"
+import debug from 'debug'
+
+const log = debug("CANONICAL_DEPLOY")
 
 export async function deployCanonicals(signer: Signer) {
   const funder = signer
@@ -24,12 +27,12 @@ export async function deployCanonicals(signer: Signer) {
       })
       await tx.wait()
     }
-    console.log("------ Deploy Safe 1.1.1 ------")
+    log("------ Deploy Safe 1.1.1 ------")
     await waitForTx(provider, safe111AndFactoryConfig.deploymentTx)
     await checkCode(provider, safe111AndFactoryConfig.safeAddress, safe111AndFactoryConfig.runtimeCode)
-    console.log("------ Execute Config Tx ------")
+    log("------ Execute Config Tx ------")
     await waitForTx(provider, safe111AndFactoryConfig.configTx)
-    console.log("------ Deploy Factory ------")
+    log("------ Deploy Factory ------")
     await waitForTx(provider, safe111AndFactoryConfig.factoryDeploymentTx)
     await checkCode(provider, safe111AndFactoryConfig.factoryAddress, safe111AndFactoryConfig.factoryRuntimeCode)
   }
@@ -37,7 +40,7 @@ export async function deployCanonicals(signer: Signer) {
   const deploy120 = async () => {
     const deploymentCosts120 = BigNumber.from(safe120Config.deploymentCosts)
     const deploymentAccountBalance = await provider.getBalance(safe120Config.deployer)
-    console.log('price: ', utils.formatEther(deploymentCosts120.sub(deploymentAccountBalance)))
+    log('price: ', utils.formatEther(deploymentCosts120.sub(deploymentAccountBalance)))
     if (deploymentAccountBalance.lt(deploymentCosts120)) {
       const tx = await funder.sendTransaction({
         to: safe120Config.deployer,
@@ -45,7 +48,7 @@ export async function deployCanonicals(signer: Signer) {
       })
       await tx.wait()
     }
-    console.log("------ Deploy Safe 1.2.0 ------")
+    log("------ Deploy Safe 1.2.0 ------")
     await waitForTx(provider, safe120Config.deploymentTx)
     await checkCode(provider, safe120Config.safeAddress, safe120Config.runtimeCode)
   }
@@ -62,5 +65,8 @@ const waitForTx = async (provider:providers.Provider, singedTx:string): Promise<
 
 const checkCode = async (provider:providers.Provider, address:string, expectedCode:string): Promise<void> => {
   const code = await provider.getCode(address)
-  console.log(`Deployment ${code === expectedCode ? "was successful" : "has failed"}`)
+  if (code !== expectedCode) {
+    throw new Error(`${expectedCode} != ${code}`)
+  }
+  log(`Deployment ${code === expectedCode ? "was successful" : "has failed"}`)
 }
