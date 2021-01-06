@@ -1,5 +1,5 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, BigNumberish, BytesLike, Signer } from "ethers"
+import { BigNumber, BigNumberish, BytesLike } from "ethers"
 
 type Address = string
 

@@ -1,13 +1,12 @@
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
 import { deployCanonicals } from "../src/helpers/deploy";
-import { GnosisSafeProxy__factory, GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts";
+import { GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts";
 import { GnosisSafe } from '../types/ethers-contracts/GnosisSafe'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { OPERATION, signer } from "../src/helpers/txSigner";
-import { BigNumber, constants, utils, Wallet } from "ethers";
+import {  constants, utils } from "ethers";
 import { safeFromAddr, WalletMaker } from "../src/wallet";
-import { send } from "process";
 
 const addr0 = ethers.constants.AddressZero
 
