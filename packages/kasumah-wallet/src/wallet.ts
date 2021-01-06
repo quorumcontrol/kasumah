@@ -1,4 +1,4 @@
-import { BigNumber, BigNumberish, constants, Signer, VoidSigner } from "ethers"
+import { BigNumber, BigNumberish, constants, Signer, utils, VoidSigner } from "ethers"
 import { GnosisSafe, GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts"
 
 export type Address = string
@@ -42,7 +42,7 @@ export class WalletMaker {
     this.chainId = chainId
   }
 
-  async createWallet(user:Address):Promise<Address> {
+  async deployWallet(user:Address):Promise<Address> {
     const setupData = await setupDataForUser(user)
     const walletTx = await this.proxyFactory.createProxyWithNonce(MASTER_COPY_ADDR, setupData, this.chainId)
     const walletReceipt = await walletTx.wait()
@@ -51,70 +51,19 @@ export class WalletMaker {
   }
 
   async walletAddressForUser(user:Address):Promise<Address> {
-    var futureAddr:string = ''
     const setupData = await setupDataForUser(user)
-    try {
-      await this.proxyFactory.callStatic.calculateCreateProxyWithNonceAddress(MASTER_COPY_ADDR, setupData, this.chainId)
-    } catch (e) {
-      futureAddr =  '0x' + e.stackTrace[0].message.toString('hex').substring(136, 136 + 40)
-    }
-    return futureAddr.toLowerCase()
+
+    const salt = utils.keccak256(utils.solidityPack(['bytes', 'uint256'], [utils.keccak256(setupData), this.chainId]))
+    const initCode = utils.solidityKeccak256(['bytes', 'bytes'], [await this.proxyFactory.proxyCreationCode(), utils.defaultAbiCoder.encode(['address'], [MASTER_COPY_ADDR])])
+    
+    const addr = utils.getCreate2Address(this.proxyFactory.address, salt, initCode)
+    return addr.toLowerCase()
   }
+
+  async isDeployed(user:Address) {
+    const addr = await this.walletAddressForUser(user)
+    const code = await this.signer.provider!.getCode(addr)
+    return code  !== '0x'
+  }
+
 }
-
-// const nonce = 2
-
-// const createWalletForUser(user:Address) {
-
-    // var futureAddr:string = ''
-    // try {
-    //   await proxyFactory.callStatic.calculateCreateProxyWithNonceAddress(masterCopy.address, setupData.data, nonce)
-    // } catch (e) {
-    //   console.log('revert', e.stackTrace[0].message.toString('hex'))
-
-    //   console.dir(e, {depth: null})
-
-    //   futureAddr =  '0x' + e.stackTrace[0].message.toString('hex').substring(136, 136 + 40)
-// }
-
-    // const setupData = await masterCopy.populateTransaction.setup([deployer.address], 1, addr0, '0x', addr0, addr0, 0, addr0)
-    // if (!setupData.data) {
-    //     throw new Error("no setup data")
-    // }
-
-    // var futureAddr:string = ''
-    // try {
-    //   await proxyFactory.callStatic.calculateCreateProxyWithNonceAddress(masterCopy.address, setupData.data, nonce)
-    // } catch (e) {
-    //   console.log('revert', e.stackTrace[0].message.toString('hex'))
-
-    //   console.dir(e, {depth: null})
-
-    //   futureAddr =  '0x' + e.stackTrace[0].message.toString('hex').substring(136, 136 + 40)
-
-    // }
-    // console.log('hi')
-
-    // const walletTx = await proxyFactory.createProxyWithNonce(masterCopy.address, setupData.data, nonce)
-    // const walletReceipt = await walletTx.wait()
-
-    // const addr = walletReceipt.events![0].args?.proxy
-    // console.log("addr from working: ", addr)
-    // expect(futureAddr).to.equal(addr.toLowerCase())
-
-// export async function getAddressForUser(proxyFactory:GnosisSafeProxyFactory, userAddr:string, chainId:BigNumberish) {
-//     if (!BigNumber.isBigNumber(chainId)) {
-//         chainId = BigNumber.from(chainId)
-//     }
-
-//     var futureAddr:string = ''
-//     try {
-//       await proxyFactory.callStatic.calculateCreateProxyWithNonceAddress(masterCopy.address, setupData.data, nonce)
-//     } catch (e) {
-//       console.log('revert', e.stackTrace[0].message.toString('hex'))
-
-//       console.dir(e, {depth: null})
-
-//       futureAddr =  '0x' + e.stackTrace[0].message.toString('hex').substring(136, 136 + 40)
-
-// }

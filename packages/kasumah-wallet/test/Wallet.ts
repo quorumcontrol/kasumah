@@ -40,16 +40,22 @@ describe("MulticallWrapper", () => {
     const walletMaker = new WalletMaker({signer: deployer, chainId: network.config.chainId!})
 
     const futureAddr = await walletMaker.walletAddressForUser(deployer.address)
-    const realAddr = await walletMaker.createWallet(deployer.address)
+    const realAddr = await walletMaker.deployWallet(deployer.address)
     expect(futureAddr).to.equal(realAddr)
+  })
+
+  it('detects if a wallet is deployed', async ()=> {
+    const walletMaker = new WalletMaker({signer: deployer, chainId: network.config.chainId!})
+    expect(await walletMaker.isDeployed(deployer.address)).to.be.false
+    await walletMaker.deployWallet(deployer.address)
+    expect(await walletMaker.isDeployed(deployer.address)).to.be.true
   })
 
   it("creates functional wallets", async () => {
     const walletMaker = new WalletMaker({signer: deployer, chainId: network.config.chainId!})
 
-    const walletAddr = await walletMaker.createWallet(deployer.address)
+    const walletAddr = await walletMaker.deployWallet(deployer.address)
     const userWallet = safeFromAddr(deployer, walletAddr)
-
     const sendTx = await deployer.sendTransaction({
         to: userWallet.address,
         from: deployer.address,
