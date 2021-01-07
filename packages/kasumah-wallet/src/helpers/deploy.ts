@@ -5,6 +5,19 @@ import debug from 'debug'
 
 const log = debug("CANONICAL_DEPLOY")
 
+export async function isCanonicalDeployed(provider: providers.Provider) {
+  try {
+    await checkCode(provider, safe120Config.safeAddress, safe120Config.runtimeCode)
+  } catch (e) {
+    if (e.message.includes('NotCorrect')) {
+      return false
+    }
+    throw e
+  }
+
+  return true
+}
+
 export async function deployCanonicals(signer: Signer) {
   const funder = signer
   const provider = signer.provider
@@ -66,7 +79,7 @@ const waitForTx = async (provider:providers.Provider, singedTx:string): Promise<
 const checkCode = async (provider:providers.Provider, address:string, expectedCode:string): Promise<void> => {
   const code = await provider.getCode(address)
   if (code !== expectedCode) {
-    throw new Error(`${expectedCode} != ${code}`)
+    throw new Error(`NotExpectedError: ${expectedCode} != ${code}`)
   }
   log(`Deployment ${code === expectedCode ? "was successful" : "has failed"}`)
 }

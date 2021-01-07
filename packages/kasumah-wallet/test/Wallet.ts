@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
-import { deployCanonicals } from "../src/helpers/deploy";
+import { deployCanonicals, isCanonicalDeployed } from "../src/helpers/deploy";
 import { GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts";
 import { GnosisSafe } from '../types/ethers-contracts/GnosisSafe'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
@@ -27,6 +27,7 @@ describe("MulticallWrapper", () => {
     deployer = signers[0]
     alice = signers[1]
     await deployCanonicals(deployer)
+    expect(await isCanonicalDeployed(deployer.provider!)).to.be.true
     gnosisSafeFactory = new GnosisSafe__factory(deployer)
     // const gs = new GnosisSafe('0x6851D6fDFAfD08c0295C392436245E5bc78B0185', gsf.interface, deployer)
     masterCopy = gnosisSafeFactory.attach('0x6851D6fDFAfD08c0295C392436245E5bc78B0185')
