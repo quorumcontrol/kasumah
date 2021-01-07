@@ -26,6 +26,7 @@ describe("MulticallWrapper", () => {
     const signers = await ethers.getSigners()
     deployer = signers[0]
     alice = signers[1]
+    expect(await isCanonicalDeployed(deployer.provider!)).to.be.false
     await deployCanonicals(deployer)
     expect(await isCanonicalDeployed(deployer.provider!)).to.be.true
     gnosisSafeFactory = new GnosisSafe__factory(deployer)

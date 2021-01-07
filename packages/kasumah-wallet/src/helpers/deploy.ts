@@ -9,7 +9,7 @@ export async function isCanonicalDeployed(provider: providers.Provider) {
   try {
     await checkCode(provider, safe120Config.safeAddress, safe120Config.runtimeCode)
   } catch (e) {
-    if (e.message.includes('NotCorrect')) {
+    if (e.message.includes('NotExpectedError')) {
       return false
     }
     throw e
