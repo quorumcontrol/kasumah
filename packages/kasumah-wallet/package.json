@@ -48,5 +48,6 @@
     "@gnosis.pm/safe-contracts": "^1.2.0",
     "contract-proxy-kit": "^1.1.2",
     "debug": "^4.3.1"
-  }
+  },
+  "gitHead": "395dcb202abbf7e4a59d88aa0e0663921337ce65"
 }
