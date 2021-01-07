@@ -11,7 +11,8 @@
     "typechain": "typechain 'artifacts/!(build-info)/**/+([a-zA-Z0-9]).json' --target ethers-v5",
     "local": "hardhat node",
     "start": "npm run local",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "prepublish": "npm run build"
   },
   "files": [
     "dist",

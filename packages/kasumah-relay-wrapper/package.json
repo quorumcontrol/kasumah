@@ -18,7 +18,8 @@
     "typechain": "typechain './node_modules/@gnosis.pm/safe-contracts/build/contracts/*.json' --target ethers-v5",
     "local": "hardhat node",
     "start": "npm run local",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.1",
