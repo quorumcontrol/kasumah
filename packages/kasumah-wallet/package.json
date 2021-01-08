@@ -15,8 +15,7 @@
     "url": "git+https://github.com/quorumcontrol/kasumah.git"
   },
   "scripts": {
-    "build": "hardhat compile && npm run typechain && tsc",
-    "prepublish": "npm run build",
+    "build": "hardhat compile && npm run typechain && tsc && cp -r types ./dist",
     "typechain": "typechain './node_modules/@gnosis.pm/safe-contracts/build/contracts/*.json' --target ethers-v5",
     "local": "hardhat node",
     "start": "npm run local",
