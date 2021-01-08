@@ -1,5 +1,4 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { BigNumber, BigNumberish, BytesLike } from "ethers"
+import { BigNumber, BigNumberish, BytesLike, Signer } from "ethers"
 
 type Address = string
 
@@ -8,7 +7,7 @@ export enum OPERATION {
     CREATE = 2,
 }
 
-export const signer = async function(signer:SignerWithAddress, verifyingContract:Address, to:Address, value:BigNumberish, data:BytesLike, operation:OPERATION, txGasEstimate:BigNumberish, baseGasEstimate:BigNumberish, gasPrice:BigNumberish, txGasToken:Address, refundReceiver:Address, nonce:BigNumberish) {
+export const signer = async function(signer:Signer, verifyingContract:Address, to:Address, value:BigNumberish, data:BytesLike, operation:OPERATION, txGasEstimate:BigNumberish, baseGasEstimate:BigNumberish, gasPrice:BigNumberish, txGasToken:Address, refundReceiver:Address, nonce:BigNumberish) {
     if (!BigNumber.isBigNumber(value)) {
         value = BigNumber.from(value)
     }
@@ -49,8 +48,9 @@ export const signer = async function(signer:SignerWithAddress, verifyingContract
         }
     }
 
-    let sig = await (signer.provider as any).send("eth_signTypedData",[signer.address,typedData]);
+    const addr = await signer.getAddress()
 
+    let sig = await (signer.provider as any).send("eth_signTypedData",[addr,typedData]);
     
     return sig
 }
