@@ -1,5 +1,5 @@
-import { BigNumber, BigNumberish, constants, Signer, utils, VoidSigner } from "ethers"
-import { GnosisSafe, GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts"
+import { constants, Signer, utils, VoidSigner } from "ethers"
+import { GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts"
 
 export type Address = string
 const addr0 = constants.AddressZero
