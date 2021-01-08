@@ -45,7 +45,6 @@
   },
   "dependencies": {
     "@gnosis.pm/safe-contracts": "^1.2.0",
-    "contract-proxy-kit": "^1.1.2",
     "debug": "^4.3.1"
   },
   "gitHead": "9830a27a3ebc9b70ed8efb78926a88c3ac88b690"
