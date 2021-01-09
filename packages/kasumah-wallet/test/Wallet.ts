@@ -57,6 +57,9 @@ describe("MulticallWrapper", () => {
 
     const walletAddr = await walletMaker.deployWallet(deployer.address)
     const userWallet = safeFromAddr(deployer, walletAddr)
+
+    expect(await userWallet.nonce()).to.equal(0)
+
     const sendTx = await deployer.sendTransaction({
         to: userWallet.address,
         from: deployer.address,
@@ -81,6 +84,7 @@ describe("MulticallWrapper", () => {
         sig
     )
     expect(await deployer.provider?.getBalance(userWallet.address)).to.equal(halfEth)
+    expect(await userWallet.nonce()).to.equal(1)
   });
 
 });
