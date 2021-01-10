@@ -5,7 +5,7 @@ import { GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__fa
 import { GnosisSafe } from '../types/ethers-contracts/GnosisSafe'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { OPERATION, signer } from "../src/helpers/txSigner";
-import {  constants, utils } from "ethers";
+import {  constants, providers, utils } from "ethers";
 import { safeFromAddr, WalletMaker } from "../src/wallet";
 
 const addr0 = ethers.constants.AddressZero
@@ -50,6 +50,11 @@ describe("MulticallWrapper", () => {
     expect(await walletMaker.isDeployed(deployer.address)).to.be.false
     await walletMaker.deployWallet(deployer.address)
     expect(await walletMaker.isDeployed(deployer.address)).to.be.true
+  })
+
+  it('has the default handler', async ()=> {
+    const code = await deployer.provider!.getCode('0xd5D82B6aDDc9027B22dCA772Aa68D5d74cdBdF44')
+    expect(code).to.not.equal('0x')
   })
 
   it("creates functional wallets", async () => {

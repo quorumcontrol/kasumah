@@ -1,9 +1,28 @@
 import { BigNumber, utils, providers, Signer } from "ethers";
-import safe111AndFactoryConfig from "./safe111AndFactoryConfig.json"
-import safe120Config from "./safe120Config.json"
+import safe111AndFactoryConfig from "./txs/0_safe111AndFactoryConfig.json"
+import safe120Config from "./txs/1_safe120Config.json"
+
+import tx2 from './txs/2_setImplementation.json'
+import tx3 from './txs/3_multisend.json'
+import tx4 from './txs/4_setImpl.json'
+import tx5 from './txs/5_createAndAddModules.json'
+import tx6 from './txs/6_setImpl.json'
+import tx7 from './txs/7_createCall.json'
+import tx8 from './txs/8_seImpl.json'
+import tx9 from './txs/9_defaultHandlerConfig.json'
+import tx10 from './txs/10_setImpl.json'
+
+// import defaultHandlerConfig from './defaultHandlerConfig.json'
 import debug from 'debug'
+import { LogDescription } from "ethers/lib/utils";
 
 const log = debug("CANONICAL_DEPLOY")
+
+interface SavedTx {
+  deploymentTx: string
+  deploymentCosts: string
+  deployer: string
+}
 
 export async function isCanonicalDeployed(provider: providers.Provider) {
   try {
@@ -65,10 +84,40 @@ export async function deployCanonicals(signer: Signer) {
     await waitForTx(provider, safe120Config.deploymentTx)
     await checkCode(provider, safe120Config.safeAddress, safe120Config.runtimeCode)
   }
+
+  const deployTx = async (txConfig:SavedTx) => {
+    const deploymentCostsDefaultHandler = BigNumber.from(txConfig.deploymentCosts)
+    const deploymentAccountBalance = await provider.getBalance(txConfig.deployer)
+    if (deploymentAccountBalance.lt(deploymentCostsDefaultHandler)) {
+      const tx = await funder.sendTransaction({
+        to: txConfig.deployer,
+        value: deploymentCostsDefaultHandler.sub(deploymentAccountBalance)
+      })
+      await tx.wait()
+    }
+    log("------ deploy ------")
+    await waitForTx(provider, txConfig.deploymentTx)
+  }
+
+  const chain = async (configs:SavedTx[]) => {
+    log('deploying 2')
+    let last = deployTx(configs[0])
+    for (let i = 1; i < configs.length; i++) {
+      last = last.then(()=> {
+        log(`deploying ${i + 2}`)
+        return deployTx(configs[i])
+      })
+    }
+    return last
+  }
+
   
   return deploy111AndFactory()
-    .then(deploy120)
-  
+    .then(deploy120).then(()=> {
+      return chain([
+      tx2, tx3,tx4,tx5,tx6, tx7,tx8,tx9,tx10
+      ])
+    })
 }
 
 const waitForTx = async (provider:providers.Provider, singedTx:string): Promise<providers.TransactionReceipt> => {
