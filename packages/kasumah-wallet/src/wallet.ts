@@ -27,7 +27,6 @@ async function setupDataForUser(user:Address) {
   return setupData.data
 }
 
-
 export class WalletMaker {
   proxyFactory:GnosisSafeProxyFactory
   chainId: number

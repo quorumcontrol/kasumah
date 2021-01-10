@@ -5,7 +5,7 @@ import { GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__fa
 import { GnosisSafe } from '../types/ethers-contracts/GnosisSafe'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { OPERATION, signer } from "../src/helpers/txSigner";
-import {  constants, providers, utils } from "ethers";
+import {  constants, utils } from "ethers";
 import { safeFromAddr, WalletMaker } from "../src/wallet";
 
 const addr0 = ethers.constants.AddressZero
@@ -36,6 +36,10 @@ describe("MulticallWrapper", () => {
     const proxyFactoryFactory = new GnosisSafeProxyFactory__factory(deployer)
     proxyFactory = proxyFactoryFactory.attach('0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B')
   });
+
+  it('can canonically deploy twice', async () => {
+    await deployCanonicals(deployer)
+  })
 
   it('gets a future address', async ()=> {
     const walletMaker = new WalletMaker({signer: deployer, chainId: network.config.chainId!})

@@ -2,6 +2,7 @@ import { BigNumber, utils, providers, Signer } from "ethers";
 import safe111AndFactoryConfig from "./txs/0_safe111AndFactoryConfig.json"
 import safe120Config from "./txs/1_safe120Config.json"
 
+// see: https://etherscan.io/address/0x1aa7451dd11b8cb16ac089ed7fe05efa00100a6a
 import tx2 from './txs/2_setImplementation.json'
 import tx3 from './txs/3_multisend.json'
 import tx4 from './txs/4_setImpl.json'
@@ -12,17 +13,18 @@ import tx8 from './txs/8_seImpl.json'
 import tx9 from './txs/9_defaultHandlerConfig.json'
 import tx10 from './txs/10_setImpl.json'
 
-// import defaultHandlerConfig from './defaultHandlerConfig.json'
 import debug from 'debug'
-import { LogDescription } from "ethers/lib/utils";
 
 const log = debug("CANONICAL_DEPLOY")
 
 interface SavedTx {
   deploymentTx: string
   deploymentCosts: string
-  deployer: string
+  deployer: string,
+  nonce: number
 }
+
+const DEPLOYER_ADDR = '0x1aa7451dd11b8cb16ac089ed7fe05efa00100a6a'
 
 export async function isCanonicalDeployed(provider: providers.Provider) {
   try {
@@ -34,6 +36,11 @@ export async function isCanonicalDeployed(provider: providers.Provider) {
     throw e
   }
 
+  const txCount = await provider.getTransactionCount(DEPLOYER_ADDR)
+  if (txCount < 11) {
+    return false
+  }
+
   return true
 }
 
@@ -42,6 +49,15 @@ export async function deployCanonicals(signer: Signer) {
   const provider = signer.provider
   if (!provider) {
     throw new Error("provider is undefined")
+  }
+
+  const isExpectedNonce = async (expected:number) => {
+    const nonce = await provider.getTransactionCount(DEPLOYER_ADDR)
+    if (nonce === expected) {
+      return true
+    }
+    log(`expected nonce ${expected} but was ${nonce}`)
+    return false
   }
 
   const deploy111AndFactory = async () => {
@@ -70,6 +86,10 @@ export async function deployCanonicals(signer: Signer) {
   }
   
   const deploy120 = async () => {
+    log('deploy 1.2')
+    if (!(await isExpectedNonce(3))) {
+      return
+    }
     const deploymentCosts120 = BigNumber.from(safe120Config.deploymentCosts)
     const deploymentAccountBalance = await provider.getBalance(safe120Config.deployer)
     log('price: ', utils.formatEther(deploymentCosts120.sub(deploymentAccountBalance)))
@@ -86,6 +106,10 @@ export async function deployCanonicals(signer: Signer) {
   }
 
   const deployTx = async (txConfig:SavedTx) => {
+    if (!(await isExpectedNonce(txConfig.nonce))) {
+      log('skipping')
+      return
+    }
     const deploymentCostsDefaultHandler = BigNumber.from(txConfig.deploymentCosts)
     const deploymentAccountBalance = await provider.getBalance(txConfig.deployer)
     if (deploymentAccountBalance.lt(deploymentCostsDefaultHandler)) {
