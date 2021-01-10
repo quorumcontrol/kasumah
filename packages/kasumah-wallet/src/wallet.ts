@@ -7,6 +7,8 @@ const addr0 = constants.AddressZero
 const PROXY_ADDR = '0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B'
 const MASTER_COPY_ADDR = '0x6851D6fDFAfD08c0295C392436245E5bc78B0185'
 
+const DEFAULT_HANDLER = '0xd5D82B6aDDc9027B22dCA772Aa68D5d74cdBdF44'
+
 const voidSigner = new VoidSigner(addr0)
 const voidMasterCopy = new GnosisSafe__factory(voidSigner).attach(addr0)
 
@@ -20,7 +22,7 @@ export function safeFromAddr(signer:Signer, safeAddr:Address) {
 }
 
 async function setupDataForUser(user:Address) {
-  const setupData = await voidMasterCopy.populateTransaction.setup([user], 1, addr0, '0x', addr0, addr0, 0, addr0)
+  const setupData = await voidMasterCopy.populateTransaction.setup([user], 1, addr0, '0x', DEFAULT_HANDLER, addr0, 0, addr0)
   if (!setupData.data) {
       throw new Error("no setup data")
   }
