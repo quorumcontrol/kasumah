@@ -1,6 +1,6 @@
 {
   "name": "kasumah",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "private": true,
   "dependencies": {
     "@chakra-ui/react": "^1.1.0",
