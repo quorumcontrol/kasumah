@@ -87,7 +87,9 @@ export async function deployCanonicals(signer: Signer) {
   
   const deploy120 = async () => {
     log('deploy 1.2')
-    if (!(await isExpectedNonce(3))) {
+    const nonce = await provider.getTransactionCount(safe120Config.deployer)
+    if (nonce != 0) {
+      console.warn("Deployment account for 1.2 already used")
       return
     }
     const deploymentCosts120 = BigNumber.from(safe120Config.deploymentCosts)
@@ -146,7 +148,9 @@ export async function deployCanonicals(signer: Signer) {
 
 const waitForTx = async (provider:providers.Provider, singedTx:string): Promise<providers.TransactionReceipt> => {
   const tx = await provider.sendTransaction(singedTx);
-  return await tx.wait()
+  const receipt = await tx.wait()
+  log("nonce confirmed", tx.nonce, tx.hash)
+  return receipt
 }
 
 const checkCode = async (provider:providers.Provider, address:string, expectedCode:string): Promise<void> => {
