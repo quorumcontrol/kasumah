@@ -115,6 +115,7 @@ export async function deployCanonicals(signer: Signer) {
     const deploymentCostsDefaultHandler = BigNumber.from(txConfig.deploymentCosts)
     const deploymentAccountBalance = await provider.getBalance(txConfig.deployer)
     if (deploymentAccountBalance.lt(deploymentCostsDefaultHandler)) {
+      log('sending ', deploymentCostsDefaultHandler.sub(deploymentAccountBalance).toString(), ' to deployer')
       const tx = await funder.sendTransaction({
         to: txConfig.deployer,
         value: deploymentCostsDefaultHandler.sub(deploymentAccountBalance)
@@ -149,7 +150,7 @@ export async function deployCanonicals(signer: Signer) {
 const waitForTx = async (provider:providers.Provider, singedTx:string): Promise<providers.TransactionReceipt> => {
   const tx = await provider.sendTransaction(singedTx);
   const receipt = await tx.wait()
-  log("nonce confirmed", tx.nonce, tx.hash)
+  log("confirmed. nonce/hash: ", tx.nonce, tx.hash)
   return receipt
 }
 
