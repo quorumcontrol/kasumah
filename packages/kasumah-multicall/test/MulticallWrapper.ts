@@ -41,7 +41,9 @@ describe("MulticallWrapper", () => {
   it('supports subscriptions after wrapping', async () => {
     const wrapper = new MulticallWrapper(ethers.provider, chainId);
     const wrappedEcho = await wrapper.wrap<Echo>(echo);
-    wrappedEcho.on(wrappedEcho.filters.Echoed(utils.formatBytes32String('hi')), ()=> { console.log('echoed') })
-    await wrappedEcho.setMapping(utils.formatBytes32String('hi'))
+    return new Promise((resolve) => {
+      wrappedEcho.on(wrappedEcho.filters.Echoed(utils.formatBytes32String('hi')), ()=> { resolve() })
+      wrappedEcho.setMapping(utils.formatBytes32String('hi'))
+    })
   })
 });
