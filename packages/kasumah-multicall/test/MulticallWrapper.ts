@@ -4,6 +4,7 @@ import { Multicall } from "../types/ethers-contracts/Multicall";
 import { Echo } from "../types/ethers-contracts/Echo";
 import { MulticallWrapper } from "../src";
 import { Contract, Provider } from "ethers-multicall";
+import { utils } from "ethers";
 
 describe("MulticallWrapper", () => {
   let multicall: Multicall;
@@ -36,4 +37,11 @@ describe("MulticallWrapper", () => {
     const wrappedEcho = await wrapper.wrap<Echo>(echo);
     expect(await wrappedEcho.echo("hi")).to.equal("hi");
   });
+
+  it('supports subscriptions after wrapping', async () => {
+    const wrapper = new MulticallWrapper(ethers.provider, chainId);
+    const wrappedEcho = await wrapper.wrap<Echo>(echo);
+    wrappedEcho.on(wrappedEcho.filters.Echoed(utils.formatBytes32String('hi')), ()=> { console.log('echoed') })
+    await wrappedEcho.setMapping(utils.formatBytes32String('hi'))
+  })
 });

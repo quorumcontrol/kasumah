@@ -23,7 +23,6 @@ export class MulticallWrapper {
 
     async wrap<T=Contract>(contract:Contract) {
         const abi = contract.interface.fragments
-        console.log(abi)
         const multicallContract = new MulticallContract(contract.address, abi)
         const dataLoader = this.dataLoader
 
@@ -51,10 +50,8 @@ export class MulticallWrapper {
             ...contract,
             ...funcs,
         }
-
-        Object.setPrototypeOf(newContract, Contract)
         
-        return newContract as any as T
+        return Object.setPrototypeOf(newContract, Contract.prototype) as any as T
     }
 }
 
