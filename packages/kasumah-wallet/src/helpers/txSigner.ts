@@ -4,6 +4,7 @@ type Address = string
 
 export enum OPERATION {
     CALL = 0,
+    DELEGATE_CALL = 1,
     CREATE = 2,
 }
 
