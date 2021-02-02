@@ -1,4 +1,4 @@
-import { Signer, utils } from "ethers"
+import { ContractTransaction, PopulatedTransaction, Signer, utils } from "ethers"
 import { GnosisSafeProxyFactory, GnosisSafeProxyFactory__factory, GnosisSafe__factory } from "../types/ethers-contracts"
 import { voidSigner, addr0 } from "./void"
 
@@ -39,6 +39,11 @@ export class WalletMaker {
 
     this.proxyFactory = proxyFactory
     this.chainId = chainId
+  }
+
+  async deployTx(user:Address):Promise<PopulatedTransaction> {
+    const setupData = await setupDataForUser(user)
+    return this.proxyFactory.populateTransaction.createProxyWithNonce(MASTER_COPY_ADDR, setupData, this.chainId)
   }
 
   async deployWallet(user:Address):Promise<Address> {
