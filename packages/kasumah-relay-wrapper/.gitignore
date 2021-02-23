@@ -6,3 +6,4 @@ deployments/localhost
 secrets.json
 yarn.lock
 .env
+/dist

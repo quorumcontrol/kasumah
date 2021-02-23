@@ -1,6 +1,6 @@
 {
   "name": "kasumah-relay-wrapper",
-  "version": "0.0.19",
+  "version": "0.0.2",
   "description": "wraps standard ethers contracts to use a relayer",
   "author": "Topper Bowers <topper@toppingdesign.com>",
   "homepage": "https://github.com/quorumcontrol/kasumah#readme",
@@ -15,23 +15,24 @@
   },
   "scripts": {
     "build": "hardhat compile && npm run typechain && tsc",
-    "typechain": "typechain './node_modules/@gnosis.pm/safe-contracts/build/contracts/*.json' --target ethers-v5",
+    "typechain": "typechain 'artifacts/!(build-info)/**/+([a-zA-Z0-9]).json' --target ethers-v5",
     "local": "hardhat node",
     "start": "npm run local",
-    "test": "hardhat test",
-    "prepublish": "npm run build"
+    "test": "hardhat test"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^3.3.0",
     "@typechain/ethers-v5": "^5.0.0",
     "@types/chai": "^4.2.14",
+    "@types/debug": "^4.1.5",
     "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.19",
+    "axios-mock-adapter": "^1.19.0",
     "chai": "^4.2.0",
     "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.2.1",
-    "ethers": "^5.0.24",
     "hardhat": "^2.0.6",
     "hardhat-deploy": "^0.7.0-beta.39",
     "mocha": "^8.2.1",
@@ -42,5 +43,10 @@
   "bugs": {
     "url": "https://github.com/quorumcontrol/kasumah/issues"
   },
-  "gitHead": "9830a27a3ebc9b70ed8efb78926a88c3ac88b690"
+  "dependencies": {
+    "axios": "^0.21.1",
+    "debug": "^4.3.1",
+    "ethers": "^5.0.24",
+    "kasumah-wallet": "0.0.19"
+  }
 }

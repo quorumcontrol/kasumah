@@ -39,11 +39,11 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.0",
+        version: "0.7.4",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1,
+            runs: 999,
           },
           evmVersion: 'istanbul',
         },
