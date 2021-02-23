@@ -1,5 +1,4 @@
 import { BigNumber, BigNumberish, PopulatedTransaction, utils } from "ethers";
-import { encode } from "punycode";
 import { MultiSend__factory } from "../types/ethers-contracts";
 import { addr0, voidSigner } from "./void";
 
