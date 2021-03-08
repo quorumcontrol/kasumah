@@ -12,6 +12,7 @@ const networks:Record<string,NetworkUserConfig> = {}
 
 if (process.env.CHAIN_ID) {
   const wallet = Wallet.fromMnemonic(process.env.MNEMONIC!)
+  console.log('address: ', wallet.address)
 
   networks[process.env.CHAIN_ID] = {
     url: process.env.RPC_URL,
@@ -20,10 +21,14 @@ if (process.env.CHAIN_ID) {
   } 
 }
 
-
 networks['mumbai'] = {
   url: 'https://rpc-mumbai.maticvigil.com/v1/c0ce8ac6dcee6f838f2d4cf83d16b6ca1493aa0b',
   chainId: 80001,
+}
+
+networks['matic'] = {
+  url: 'https://rpc-mainnet.maticvigil.com/v1/c0ce8ac6dcee6f838f2d4cf83d16b6ca1493aa0b',
+  chainId: 137,
 }
 
 const config: HardhatUserConfig = {
