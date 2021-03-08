@@ -1,6 +1,6 @@
 {
   "name": "kasumah-relay-wrapper",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "wraps standard ethers contracts to use a relayer",
   "author": "Topper Bowers <topper@toppingdesign.com>",
   "homepage": "https://github.com/quorumcontrol/kasumah#readme",
@@ -47,6 +47,6 @@
     "axios": "^0.21.1",
     "debug": "^4.3.1",
     "ethers": "^5.0.24",
-    "kasumah-wallet": "^0.0.21"
+    "kasumah-wallet": "^0.0.22"
   }
 }
