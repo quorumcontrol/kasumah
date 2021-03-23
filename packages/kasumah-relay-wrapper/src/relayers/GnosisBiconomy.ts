@@ -6,7 +6,6 @@ import { multisendTx, MULTI_SEND_ADDR, safeFromPopulated, safeTx } from "./Gnosi
 import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts/GnosisSafe";
 import axios, { AxiosStatic } from 'axios';
 import debug from 'debug'
-import { exec } from "child_process";
 
 const log = debug('GnosisBiconomy')
 
@@ -114,7 +113,25 @@ export class GnosisBiconomy implements Relayer {
       );
       log('resp: ', resp)
       const tx = await this.voidSigner.provider?.getTransaction(resp.data.txHash)
-      return tx!
+      if (!tx) {
+        throw new Error('missing tx')
+      }
+      
+      const voidSafe = this.safeFactory.attach(constants.AddressZero);
+
+      const origWait = tx.wait.bind(tx)
+      tx.wait = async () => {
+        const receipt = await origWait()
+        if (receipt.logs.length == 1) {
+          const errorLog = voidSafe.interface.parseLog(receipt.logs[0])
+          if (errorLog.name !== "ExecutionSuccess") {
+            console.error("error with transaction: ", errorLog)
+            throw new Error([errorLog.name, errorLog.args.join(', ')].join(', '))
+          }
+        }
+        return receipt
+      }
+      return tx
     } catch (error) {
       if (error.response) {
         // The request was made and the server responded with a status code
