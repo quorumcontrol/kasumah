@@ -38,6 +38,12 @@ describe("MulticallWrapper", () => {
     expect(await wrappedEcho.echo("hi")).to.equal("hi");
   });
 
+  it("supports options", async () => {
+    const wrapper = new MulticallWrapper(ethers.provider, chainId, { cache: true, batchScheduleFn: (cb) => setTimeout(cb, 100)});
+    const wrappedEcho = await wrapper.wrap<Echo>(echo);
+    expect(await wrappedEcho.echo("hi")).to.equal("hi");
+  });
+
   it('supports subscriptions after wrapping', async () => {
     const wrapper = new MulticallWrapper(ethers.provider, chainId);
     const wrappedEcho = await wrapper.wrap<Echo>(echo);

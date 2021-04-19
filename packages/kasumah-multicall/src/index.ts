@@ -13,9 +13,9 @@ export class MulticallWrapper {
 
     static setMulticallAddress = setMulticallAddress
 
-    constructor(provider:providers.Provider, chainId:number) {
+    constructor(provider:providers.Provider, chainId:number, dataLoaderOptions: DataLoader.Options<ContractCall, any> = { cache: false }) {
         this.ethcallProvider = new Provider(provider, chainId)
-        this.dataLoader = new DataLoader(this.doCalls.bind(this), {cache: false})
+        this.dataLoader = new DataLoader(this.doCalls.bind(this), dataLoaderOptions)
     }
 
     private async doCalls(calls:readonly ContractCall[]) {
