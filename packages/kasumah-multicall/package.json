@@ -29,7 +29,6 @@
     "chai": "^4.2.0",
     "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.2.1",
-    "ethers": "^5.0.24",
     "hardhat": "^2.0.6",
     "hardhat-deploy": "^0.7.0-beta.39",
     "mocha": "^8.2.1",
@@ -39,6 +38,7 @@
   },
   "dependencies": {
     "dataloader": "^2.0.0",
+    "ethers": "^5.1.1",
     "ethers-multicall": "^0.1.4"
   },
   "gitHead": "9830a27a3ebc9b70ed8efb78926a88c3ac88b690"
