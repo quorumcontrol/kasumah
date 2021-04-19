@@ -26,7 +26,7 @@ describe("MulticallWrapper", () => {
 
   it("sanity works", async () => {
     const ethcallProvider = new Provider(ethers.provider, chainId);
-    const wrap = new Contract(echo.address, echo.interface.fragments);
+    const wrap = new Contract(echo.address, echo.interface.fragments as any);
 
     const resp = await ethcallProvider.all([wrap.echo("hi")]);
     expect(resp[0]).to.equal("hi");

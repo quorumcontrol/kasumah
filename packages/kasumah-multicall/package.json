@@ -11,8 +11,7 @@
     "typechain": "typechain 'artifacts/!(build-info)/**/+([a-zA-Z0-9]).json' --target ethers-v5",
     "local": "hardhat node",
     "start": "npm run local",
-    "test": "hardhat test",
-    "prepublish": "npm run build"
+    "test": "hardhat test"
   },
   "files": [
     "dist",
@@ -22,7 +21,7 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "@typechain/ethers-v5": "^5.0.0",
+    "@typechain/ethers-v5": "^6.0.0",
     "@types/chai": "^4.2.14",
     "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.19",

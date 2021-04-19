@@ -24,7 +24,7 @@ export class MulticallWrapper {
 
     async wrap<T=Contract>(contract:Contract) {
         const abi = contract.interface.fragments
-        const multicallContract = new MulticallContract(contract.address, abi)
+        const multicallContract = new MulticallContract(contract.address, abi as any)
         const dataLoader = this.dataLoader
 
         const funcs = abi.reduce((memo, frag)=> {
