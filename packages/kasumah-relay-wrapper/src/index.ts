@@ -1,4 +1,4 @@
-import { Contract, PopulatedTransaction } from "ethers";
+import { Contract } from "ethers";
 import { FunctionFragment } from "ethers/lib/utils";
 import { Relayer } from "./relayers";
 
