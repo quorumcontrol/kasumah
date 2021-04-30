@@ -124,4 +124,42 @@ describe("GnosisBiconomy", () => {
     await resp.wait();
     expect(await echo.publicMapping(testKey)).to.equal(testValue);
   });
+
+
+  it("accepts value", async () => {
+    await walletMaker.deployWallet(alice.address);
+    const value = utils.parseEther('2.2')
+
+    await alice.sendTransaction({
+        to: await walletMaker.walletAddressForUser(alice.address),
+        value,
+    })
+
+    const factory = new GnosisSafe__factory(deployer);
+
+    // mock out biconomy to do the local relay and return a response similar to what they do
+    axiosMock.onPost().reply(async (config) => {
+      const postedData = JSON.parse(config.data);
+      const params: ExecParams = postedData.params;
+      const safe = factory.attach(postedData.to);
+      const tx = await safe.execTransaction(...params);
+
+      return [200, { txHash: tx.hash }];
+    });
+
+    const relayer = new GnosisBiconomy({
+      apiKey: "testkey",
+      apiId: "testid",
+      userSigner: alice,
+      chainId,
+      targetChainProvider: deployer.provider!,
+      httpClient: axios,
+    });
+
+    const wrapped = wrapContract<Echo>(echo, relayer);
+
+    const resp = await wrapped.setValueMapping(testKey, { value });
+    await resp.wait();
+    expect(await echo.publicMapping(testKey)).to.equal(value);
+  });
 });

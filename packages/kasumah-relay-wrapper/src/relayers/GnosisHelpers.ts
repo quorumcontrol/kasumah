@@ -87,7 +87,7 @@ export async function safeTx(
 
   let override:PayableOverrides|undefined = undefined
   const lastArg = args[args.length - 1]
-  if (lastArg.gasLimit) {
+  if (lastArg.gasLimit || lastArg.value) {
     override = lastArg
   }
 
