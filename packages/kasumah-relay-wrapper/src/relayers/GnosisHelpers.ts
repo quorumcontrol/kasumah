@@ -60,6 +60,7 @@ export async function safeFromPopulated(
 
   let txArgs = execArgs
   if (overrides) {
+    delete overrides.value
     txArgs.push(overrides)
   }
 

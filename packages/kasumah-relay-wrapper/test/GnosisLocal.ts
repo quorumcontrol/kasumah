@@ -108,6 +108,12 @@ describe("GnosisLocal", () => {
 
   it("accepts value", async () => {
     await walletMaker.deployWallet(alice.address);
+    const value = utils.parseEther('2.2')
+
+    await alice.sendTransaction({
+        to: await walletMaker.walletAddressForUser(alice.address),
+        value,
+    })
 
     const relayer = new GnosisLocalRelayer({
       transmitSigner: deployer,
@@ -116,8 +122,6 @@ describe("GnosisLocal", () => {
     });
 
     const wrapped = wrapContract<Echo>(echo, relayer);
-
-    const value = utils.parseEther('2.2')
 
     const resp = await wrapped.setValueMapping(testKey, { value });
     await resp.wait();
