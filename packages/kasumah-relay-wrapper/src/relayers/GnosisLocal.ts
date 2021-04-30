@@ -74,10 +74,21 @@ export class GnosisLocalRelayer implements Relayer {
     const safe = this.safeFactory.attach(userWalletAddr);
     log("userAddr: ", userAddr, " wallet: ", userWalletAddr);
 
-    const [tx] = await safeTx(safe, this.userSigner, userWalletAddr, to, funcName, ...[...args,{
-      gasLimit: 9500000
-    }])
+      // TODO: explicitly see if the last argument has a 'value' and nothing else and it it does, allow merging it
+    const lastArg = args.slice(-1)[0]
+    let newArgs = args
+    if (lastArg && lastArg.hasOwnProperty('value')) {
+      lastArg.gasLimit = 9500000
+      newArgs = args.slice(0,-1).concat([lastArg])
+    } else {
+      newArgs = [...args,{
+        gasLimit: 9500000
+      }]
+    }
 
+    const [tx] = await safeTx(safe, this.userSigner, userWalletAddr, to, funcName, ...newArgs)
+
+    log('sending tx: ', tx)
     return this.sendTx(safe, tx)
   }
 }

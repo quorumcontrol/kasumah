@@ -17,4 +17,10 @@ contract Echo is Ownable {
         emit Echoed(key, val);
     }
 
+    function setValueMapping(bytes32 key) public payable onlyOwner {
+        bytes32 val = bytes32(msg.value);
+        publicMapping[key] = val;
+        emit Echoed(key, val);
+    }
+
 }

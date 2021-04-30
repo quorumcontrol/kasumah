@@ -1,5 +1,5 @@
 import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts/GnosisSafe";
-import { Signer, Contract, PopulatedTransaction, constants, PayableOverrides, BytesLike } from "ethers";
+import { Signer, Contract, PopulatedTransaction, constants, PayableOverrides, BytesLike, BigNumber } from "ethers";
 import { Address, encodeMultiSend, OPERATION } from "kasumah-wallet";
 import { signer } from "./signer";
 import debug from 'debug'
@@ -25,11 +25,16 @@ export async function safeFromPopulated(
 ): Promise<[PopulatedTransaction, ExecParams]> {
   const nonce = await safe.nonce();
 
+  let value = constants.Zero
+  if (overrides && overrides.hasOwnProperty('value')) {
+    value = BigNumber.from(await overrides.value)
+  }
+
   const sig = await signer(
     userSigner,
     userWalletAddr,
     to,
-    0,
+    value,
     data,
     operation,
     0,
@@ -42,7 +47,7 @@ export async function safeFromPopulated(
 
   const execArgs: ExecParams = [
     to,
-    0,
+    value,
     data,
     operation,
     0,
