@@ -47,7 +47,7 @@ export async function safeFromPopulated(
 
   const execArgs: ExecParams = [
     to,
-    value,
+    value.toHexString(),
     data,
     operation,
     0,
