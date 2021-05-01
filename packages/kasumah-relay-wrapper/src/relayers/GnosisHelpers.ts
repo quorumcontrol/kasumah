@@ -58,7 +58,7 @@ export async function safeFromPopulated(
     sig
   ];
 
-  let txArgs = execArgs
+  let txArgs:ExecParams = [...execArgs]
   if (overrides) {
     delete overrides.value
     txArgs.push(overrides)

@@ -141,6 +141,7 @@ describe("GnosisBiconomy", () => {
     axiosMock.onPost().reply(async (config) => {
       const postedData = JSON.parse(config.data);
       const params: ExecParams = postedData.params;
+
       const safe = factory.attach(postedData.to);
       const tx = await safe.execTransaction(...params);
 
