@@ -1,5 +1,5 @@
 import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts/GnosisSafe";
-import { Signer, Contract, PopulatedTransaction, constants, PayableOverrides, BytesLike, BigNumber } from "ethers";
+import { Signer, Contract, PopulatedTransaction, constants, PayableOverrides, BytesLike, BigNumber, ContractReceipt } from "ethers";
 import { Address, encodeMultiSend, OPERATION } from "kasumah-wallet";
 import { signer } from "./signer";
 import debug from 'debug'

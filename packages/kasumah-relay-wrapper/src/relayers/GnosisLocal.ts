@@ -51,12 +51,10 @@ export class GnosisLocalRelayer implements Relayer {
       const origWait = respP.wait.bind(respP)
       respP.wait = async () => {
         const receipt = await origWait()
-        if (receipt.logs.length == 1) {
-          const errorLog = safe.interface.parseLog(receipt.logs[0])
-          if (errorLog.name !== "ExecutionSuccess") {
-            console.error("error with transaction: ", errorLog)
-            throw new Error([errorLog.name, errorLog.args.join(', ')].join(', '))
-          }
+        const errorLog = safe.interface.parseLog(receipt.logs[receipt.logs.length - 1])
+        if (errorLog.name !== "ExecutionSuccess") {
+          console.error("error with transaction: ", errorLog)
+          throw new Error([errorLog.name, errorLog.args.join(', ')].join(', '))
         }
         return receipt
       }

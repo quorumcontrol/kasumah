@@ -118,16 +118,16 @@ export class GnosisBiconomy implements Relayer {
       }
       
       const voidSafe = this.safeFactory.attach(constants.AddressZero);
+      const successTopic = voidSafe.interface.getEventTopic('ExecutionSuccess(bytes32,uint256)')
 
       const origWait = tx.wait.bind(tx)
       tx.wait = async () => {
         const receipt = await origWait()
-        if (receipt.logs.length == 1) {
-          const errorLog = voidSafe.interface.parseLog(receipt.logs[0])
-          if (errorLog.name !== "ExecutionSuccess") {
-            console.error("error with transaction: ", errorLog)
-            throw new Error([errorLog.name, errorLog.args.join(', ')].join(', '))
-          }
+        const lastTwoLogs = receipt.logs.slice(-2) // on the mainnet there's a LogFeeTransfer event that's last, but not locally
+        const success = lastTwoLogs.find((l) => l.topics[0] === successTopic)
+        if (!success) {
+          console.error("error with transaction: ", receipt)
+          throw new Error(`Error with transaction ${receipt.transactionHash}`)
         }
         return receipt
       }
