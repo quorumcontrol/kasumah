@@ -45,21 +45,19 @@ export class GnosisLocalRelayer implements Relayer {
     return this.sendTx(safe, tx)
   }
 
-  private sendTx(safe:GnosisSafe, tx:PopulatedTransaction) {
-    const resp = this.transmitSigner.sendTransaction(tx)
-    return resp.then(async (respP) => {
-      const origWait = respP.wait.bind(respP)
-      respP.wait = async () => {
-        const receipt = await origWait()
-        const errorLog = safe.interface.parseLog(receipt.logs[receipt.logs.length - 1])
-        if (errorLog.name !== "ExecutionSuccess") {
-          console.error("error with transaction: ", errorLog)
-          throw new Error([errorLog.name, errorLog.args.join(', ')].join(', '))
-        }
-        return receipt
+  private async sendTx(safe:GnosisSafe, tx:PopulatedTransaction) {
+    const respP = await this.transmitSigner.sendTransaction(tx)
+    const origWait = respP.wait.bind(respP)
+    respP.wait = async () => {
+      const receipt = await origWait()
+      const errorLog = safe.interface.parseLog(receipt.logs[receipt.logs.length - 1])
+      if (errorLog.name !== "ExecutionSuccess") {
+        console.error("error with transaction: ", errorLog)
+        throw new Error([errorLog.name, errorLog.args.join(', ')].join(', '))
       }
-      return respP
-    })
+      return receipt
+    }
+    return respP
   }
 
   async transmit(to: Contract, funcName: string, ...args: any) {
