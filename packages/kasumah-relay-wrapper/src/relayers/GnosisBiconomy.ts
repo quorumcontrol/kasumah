@@ -1,13 +1,27 @@
 import { OPERATION, WalletMaker } from "kasumah-wallet";
 import { GnosisSafe__factory } from "kasumah-wallet/dist/types/ethers-contracts/factories/GnosisSafe__factory";
-import { Signer, Contract, VoidSigner, constants, providers, PopulatedTransaction, ContractTransaction } from "ethers";
+import {
+  Signer,
+  Contract,
+  VoidSigner,
+  constants,
+  providers,
+  PopulatedTransaction,
+  ContractTransaction,
+} from "ethers";
 import { Relayer } from "./types";
-import { multisendTx, MULTI_SEND_ADDR, safeFromPopulated, safeTx } from "./GnosisHelpers";
+import {
+  multisendTx,
+  MULTI_SEND_ADDR,
+  safeFromPopulated,
+  safeTx,
+} from "./GnosisHelpers";
 import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts/GnosisSafe";
-import axios, { AxiosStatic } from 'axios';
-import debug from 'debug'
+import axios, { AxiosStatic } from "axios";
+import debug from "debug";
+import { backOff } from "exponential-backoff";
 
-const log = debug('GnosisBiconomy')
+const log = debug("GnosisBiconomy");
 
 interface GnosisBiconomyRelayerConstrutorArgs {
   userSigner: Signer; // used to sign the gasless txs
@@ -15,7 +29,7 @@ interface GnosisBiconomyRelayerConstrutorArgs {
   chainId: number;
   apiKey: string;
   apiId: string;
-  httpClient?: AxiosStatic
+  httpClient?: AxiosStatic;
 }
 
 export class GnosisBiconomy implements Relayer {
@@ -28,7 +42,8 @@ export class GnosisBiconomy implements Relayer {
   apiKey: string;
 
   private voidSigner: VoidSigner;
-  private httpClient: AxiosStatic
+  private successTopic: string;
+  private httpClient: AxiosStatic;
 
   constructor({
     userSigner,
@@ -39,24 +54,32 @@ export class GnosisBiconomy implements Relayer {
     httpClient,
   }: GnosisBiconomyRelayerConstrutorArgs) {
     this.userSigner = userSigner;
-    this.voidSigner = new VoidSigner(constants.AddressZero, targetChainProvider);
+    this.voidSigner = new VoidSigner(
+      constants.AddressZero,
+      targetChainProvider
+    );
     this.walletMaker = new WalletMaker({ signer: this.voidSigner, chainId });
     this.safeFactory = new GnosisSafe__factory(this.voidSigner);
     this.targetChainProvider = targetChainProvider;
     this.apiId = apiId;
     this.apiKey = apiKey;
 
+    const voidSafe = this.safeFactory.attach(constants.AddressZero);
+    this.successTopic = voidSafe.interface.getEventTopic(
+      "ExecutionSuccess(bytes32,uint256)"
+    );
+
     // useful for testing
     if (httpClient) {
-        log('using user-supplied http client')
-        this.httpClient = httpClient
+      log("using user-supplied http client");
+      this.httpClient = httpClient;
     } else {
-        this.httpClient = axios
+      this.httpClient = axios;
     }
   }
 
-  async multisend(txs:PopulatedTransaction[]):Promise<ContractTransaction> {
-    const multiTx = await multisendTx(txs)
+  async multisend(txs: PopulatedTransaction[]): Promise<ContractTransaction> {
+    const multiTx = await multisendTx(txs);
     const userAddr = await this.userSigner.getAddress();
 
     const userWalletAddr = await this.walletMaker.walletAddressForUser(
@@ -65,8 +88,15 @@ export class GnosisBiconomy implements Relayer {
 
     const safe = this.safeFactory.attach(userWalletAddr);
 
-    const [_,execArgs] = await safeFromPopulated(safe, this.userSigner, userWalletAddr, MULTI_SEND_ADDR, multiTx.data!, OPERATION.DELEGATE_CALL)
-    return this.sendSignedTransaction(userWalletAddr, userAddr, execArgs)
+    const [_, execArgs] = await safeFromPopulated(
+      safe,
+      this.userSigner,
+      userWalletAddr,
+      MULTI_SEND_ADDR,
+      multiTx.data!,
+      OPERATION.DELEGATE_CALL
+    );
+    return this.sendSignedTransaction(userWalletAddr, userAddr, execArgs);
   }
 
   async transmit(to: Contract, funcName: string, ...args: any) {
@@ -89,12 +119,56 @@ export class GnosisBiconomy implements Relayer {
     return this.sendSignedTransaction(userWalletAddr, userAddr, execArgs);
   }
 
+  private async txFromHash(txHash: string) {
+    try {
+      const tx = await backOff(
+        async () => {
+          const tx = this.voidSigner.provider?.getTransaction(txHash)
+          if (!tx) {
+            throw new Error("missing tx");
+          }
+          return tx
+        },
+        {
+          numOfAttempts: 4,
+          retry: () => {
+            console.error("error fetchint Tx, retrying");
+            return true;
+          },
+          startingDelay: 500,
+          maxDelay: 10000, // max 10s delays
+        }
+      );
+      if (!tx) {
+        throw new Error("missing tx");
+      }
+
+      const successTopic = this.successTopic;
+
+      const origWait = tx.wait.bind(tx);
+      tx.wait = async () => {
+        const receipt = await origWait();
+        const lastTwoLogs = receipt.logs.slice(-2); // on the mainnet there's a LogFeeTransfer event that's last, but not locally
+        const success = lastTwoLogs.find((l) => l.topics[0] === successTopic);
+        if (!success) {
+          console.error("error with transaction: ", receipt);
+          throw new Error(`Error with transaction ${receipt.transactionHash}`);
+        }
+        return receipt;
+      };
+      return tx;
+    } catch (error) {
+      console.error('error fetching tx: ', error)
+      throw error;
+    }
+  }
+
   private async sendSignedTransaction(
     walletAddress: string,
     userAddress: string,
     execArgs: Parameters<GnosisSafe["execTransaction"]>
   ) {
-    log('transmitting to biconomy')
+    log("transmitting to biconomy");
     try {
       const resp = await this.httpClient.post(
         "https://api.biconomy.io/api/v2/meta-tx/native",
@@ -111,27 +185,8 @@ export class GnosisBiconomy implements Relayer {
           },
         }
       );
-      log('resp: ', resp)
-      const tx = await this.voidSigner.provider?.getTransaction(resp.data.txHash)
-      if (!tx) {
-        throw new Error('missing tx')
-      }
-      
-      const voidSafe = this.safeFactory.attach(constants.AddressZero);
-      const successTopic = voidSafe.interface.getEventTopic('ExecutionSuccess(bytes32,uint256)')
-
-      const origWait = tx.wait.bind(tx)
-      tx.wait = async () => {
-        const receipt = await origWait()
-        const lastTwoLogs = receipt.logs.slice(-2) // on the mainnet there's a LogFeeTransfer event that's last, but not locally
-        const success = lastTwoLogs.find((l) => l.topics[0] === successTopic)
-        if (!success) {
-          console.error("error with transaction: ", receipt)
-          throw new Error(`Error with transaction ${receipt.transactionHash}`)
-        }
-        return receipt
-      }
-      return tx
+      log("resp: ", resp);
+      return this.txFromHash(resp.data.txHash);
     } catch (error) {
       if (error.response) {
         // The request was made and the server responded with a status code
@@ -146,10 +201,9 @@ export class GnosisBiconomy implements Relayer {
         console.error(error.request);
       } else {
         // Something happened in setting up the request that triggered an Error
-        console.error('Error', error.message);
+        console.error("Error", error.message);
       }
-      throw error
+      throw error;
     }
-    
   }
 }
