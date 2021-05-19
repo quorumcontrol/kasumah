@@ -125,22 +125,24 @@ export class GnosisBiconomy implements Relayer {
         async () => {
           const tx = this.voidSigner.provider?.getTransaction(txHash)
           if (!tx) {
-            throw new Error("missing tx");
+            throw new Error("missing tx - inside backoff");
           }
+          log('returning tx: ', tx)
           return tx
         },
         {
-          numOfAttempts: 4,
-          retry: () => {
-            console.error("error fetchint Tx, retrying");
+          numOfAttempts: 10,
+          retry: (e, attempts) => {
+            console.dir(e)
+            console.error(`error fetching Tx, retrying. attempt: ${attempts}`);
             return true;
           },
-          startingDelay: 500,
+          startingDelay: 700,
           maxDelay: 10000, // max 10s delays
         }
       );
       if (!tx) {
-        throw new Error("missing tx");
+        throw new Error("missing tx - outside backoff");
       }
 
       const successTopic = this.successTopic;
