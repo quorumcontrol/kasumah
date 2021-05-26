@@ -123,7 +123,7 @@ export class GnosisBiconomy implements Relayer {
     try {
       const tx = await backOff(
         async () => {
-          const tx = this.voidSigner.provider?.getTransaction(txHash)
+          const tx = await this.voidSigner.provider?.getTransaction(txHash)
           if (!tx) {
             throw new Error("missing tx - inside backoff");
           }
