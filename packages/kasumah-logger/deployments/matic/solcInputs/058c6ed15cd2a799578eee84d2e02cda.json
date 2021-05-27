@@ -1,0 +1,42 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/KasumahValueLogger.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\nimport \"@openzeppelin/contracts/utils/Arrays.sol\";\n// import \"hardhat/console.sol\";\n\ncontract KasumahValueLogger  {\n    using Arrays for uint256[];\n\n    mapping(address => mapping(address => bool)) private _approvals; // who is allowed to write for a user?\n\n    mapping(bytes32 => uint[]) private _keys; // hash of address/key -> snapshot\n\n    mapping(bytes32 => mapping(uint => bytes)) private _values;\n\n    function set(address user, string calldata key, bytes calldata value) public {\n        requireApprovedSender(user);\n        bytes32 hsh = hashKey(user, key);\n        uint blockNumber = block.number;\n        uint[] storage snapshots = _keys[hsh];\n        require(snapshots.length == 0 || snapshots[snapshots.length - 1] < blockNumber, \"Key can only be set once per block\");\n        // console.log('pushing: ', blockNumber);\n        snapshots.push(blockNumber);\n        _values[hsh][blockNumber] = value;\n    }\n\n    function latest(address user, string calldata key) public view returns (bytes memory value) {\n        return valueAt(user, key, block.number);\n    }\n\n    function valueAt(address user, string calldata key, uint blockNumber) public view returns (bytes memory value) {\n        bytes32 hsh = hashKey(user, key);\n        uint closest = _keys[hsh].findUpperBound(blockNumber);\n        uint[] storage snapshots = _keys[hsh];\n        // console.log('bn, close', blockNumber, closest);\n        if (closest == 0) {\n            return _values[hsh][snapshots[0]];\n        }\n        if (closest == snapshots.length) {\n            return _values[hsh][snapshots[closest - 1]];\n        }\n        uint snapID = snapshots[closest];\n        if (snapID > blockNumber) {\n            return _values[hsh][snapshots[closest - 1]];\n        }\n        return _values[hsh][snapID];\n    }\n\n    function snapshotSlice(address user, string calldata key, uint start, uint length) public view returns (uint256[] memory blockNumbers) {\n        uint[] storage snapshots = _keys[hashKey(user, key)];\n        for (uint i = 0; i < length; i++) {\n            blockNumbers[i] = snapshots[i + start];\n        }\n        return blockNumbers;\n    }\n\n    function setApproved(address user, bool isApproved) public {\n        _approvals[msg.sender][user] = isApproved;\n    }\n\n    function requireApprovedSender(address user) internal view {\n        require(user == msg.sender || _approvals[user][msg.sender], \"must be the user or have an approval to log\");\n    }\n\n    function hashKey(address user, string calldata key) internal pure returns (bytes32) {\n        return keccak256(abi.encodePacked(user, key));\n    }\n\n}\n"
+    },
+    "@openzeppelin/contracts/utils/Arrays.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\npragma solidity ^0.8.0;\n\nimport \"./math/Math.sol\";\n\n/**\n * @dev Collection of functions related to array types.\n */\nlibrary Arrays {\n   /**\n     * @dev Searches a sorted `array` and returns the first index that contains\n     * a value greater or equal to `element`. If no such index exists (i.e. all\n     * values in the array are strictly less than `element`), the array length is\n     * returned. Time complexity O(log n).\n     *\n     * `array` is expected to be sorted in ascending order, and to contain no\n     * repeated elements.\n     */\n    function findUpperBound(uint256[] storage array, uint256 element) internal view returns (uint256) {\n        if (array.length == 0) {\n            return 0;\n        }\n\n        uint256 low = 0;\n        uint256 high = array.length;\n\n        while (low < high) {\n            uint256 mid = Math.average(low, high);\n\n            // Note that mid will always be strictly less than high (i.e. it will be a valid array index)\n            // because Math.average rounds down (it does integer division with truncation).\n            if (array[mid] > element) {\n                high = mid;\n            } else {\n                low = mid + 1;\n            }\n        }\n\n        // At this point `low` is the exclusive upper bound. We will return the inclusive upper bound.\n        if (low > 0 && array[low - 1] == element) {\n            return low - 1;\n        } else {\n            return low;\n        }\n    }\n}\n"
+    },
+    "@openzeppelin/contracts/utils/math/Math.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\npragma solidity ^0.8.0;\n\n/**\n * @dev Standard math utilities missing in the Solidity language.\n */\nlibrary Math {\n    /**\n     * @dev Returns the largest of two numbers.\n     */\n    function max(uint256 a, uint256 b) internal pure returns (uint256) {\n        return a >= b ? a : b;\n    }\n\n    /**\n     * @dev Returns the smallest of two numbers.\n     */\n    function min(uint256 a, uint256 b) internal pure returns (uint256) {\n        return a < b ? a : b;\n    }\n\n    /**\n     * @dev Returns the average of two numbers. The result is rounded towards\n     * zero.\n     */\n    function average(uint256 a, uint256 b) internal pure returns (uint256) {\n        // (a + b) / 2 can overflow, so we distribute\n        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "evmVersion": "istanbul",
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
