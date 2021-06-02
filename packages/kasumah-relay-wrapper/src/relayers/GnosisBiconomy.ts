@@ -123,17 +123,17 @@ export class GnosisBiconomy implements Relayer {
     try {
       const tx = await backOff(
         async () => {
-          const tx = await this.voidSigner.provider?.getTransaction(txHash)
+          const tx = await this.voidSigner.provider?.getTransaction(txHash);
           if (!tx) {
             throw new Error("missing tx - inside backoff");
           }
-          log('returning tx: ', tx)
-          return tx
+          log("returning tx: ", tx);
+          return tx;
         },
         {
           numOfAttempts: 10,
           retry: (e, attempts) => {
-            console.dir(e)
+            console.dir(e);
             console.error(`error fetching Tx, retrying. attempt: ${attempts}`);
             return true;
           },
@@ -160,7 +160,7 @@ export class GnosisBiconomy implements Relayer {
       };
       return tx;
     } catch (error) {
-      console.error('error fetching tx: ', error)
+      console.error("error fetching tx: ", error);
       throw error;
     }
   }
@@ -172,19 +172,35 @@ export class GnosisBiconomy implements Relayer {
   ) {
     log("transmitting to biconomy");
     try {
-      const resp = await this.httpClient.post(
-        "https://api.biconomy.io/api/v2/meta-tx/native",
-        {
-          to: walletAddress,
-          apiId: this.apiId,
-          params: execArgs,
-          from: userAddress,
-          gasLimit: 9500000,
+      const resp = await backOff(
+        () => {
+          return this.httpClient.post(
+            "https://api.biconomy.io/api/v2/meta-tx/native",
+            {
+              to: walletAddress,
+              apiId: this.apiId,
+              params: execArgs,
+              from: userAddress,
+              gasLimit: 9500000,
+            },
+            {
+              headers: {
+                "x-api-key": this.apiKey,
+              },
+            }
+          );
         },
         {
-          headers: {
-            "x-api-key": this.apiKey,
+          numOfAttempts: 5,
+          retry: (e, attempts) => {
+            console.dir(e);
+            console.error(
+              `error submitting Tx to biconomy, retrying. attempt: ${attempts}`
+            );
+            return true;
           },
+          startingDelay: 700,
+          maxDelay: 5000, // max 10s delays
         }
       );
       log("resp: ", resp);
