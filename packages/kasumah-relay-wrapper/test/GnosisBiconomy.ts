@@ -5,7 +5,7 @@ import { utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { wrapContract } from "../src";
 import { GnosisBiconomy } from "../src/relayers";
-import { WalletMaker, deployCanonicals } from "kasumah-wallet";
+import { WalletMaker, deployCanonicals, safeFromAddr } from "kasumah-wallet";
 import MockAdapter from "axios-mock-adapter";
 import axios from "axios";
 import { ExecParams } from "../src/relayers/GnosisHelpers";
@@ -15,6 +15,7 @@ describe("GnosisBiconomy", () => {
   let chainId: number;
   let echo: Echo;
   let deployer: SignerWithAddress;
+  let signers: SignerWithAddress[];
   let alice: SignerWithAddress;
   let walletMaker: WalletMaker;
 
@@ -37,7 +38,7 @@ describe("GnosisBiconomy", () => {
       params: [],
     });
 
-    const signers = await ethers.getSigners();
+    signers = await ethers.getSigners();
     deployer = signers[0];
     alice = signers[1];
 
@@ -125,8 +126,47 @@ describe("GnosisBiconomy", () => {
     expect(await echo.publicMapping(testKey)).to.equal(testValue);
   });
 
+  it('supports a pure value transfer', async () => {
+    await walletMaker.deployWallet(alice.address);
+    const value = utils.parseEther('2.2')
 
-  it("accepts value", async () => {
+    const aliceSafeAddr = await walletMaker.walletAddressForUser(alice.address)
+    const initialBalance = await alice.getBalance()
+
+    await alice.sendTransaction({
+        to: aliceSafeAddr,
+        value,
+    })
+
+    const factory = new GnosisSafe__factory(deployer);
+
+    // mock out biconomy to do the local relay and return a response similar to what they do
+    axiosMock.onPost().reply(async (config) => {
+      const postedData = JSON.parse(config.data);
+      const params: ExecParams = postedData.params;
+
+      const safe = factory.attach(postedData.to);
+      const tx = await safe.execTransaction(...params);
+
+      return [200, { txHash: tx.hash }];
+    });
+
+    const relayer = new GnosisBiconomy({
+      apiKey: "testkey",
+      apiId: "testid",
+      userSigner: alice,
+      chainId,
+      targetChainProvider: deployer.provider!,
+      httpClient: axios,
+    });
+
+    const populatedTx = await alice.populateTransaction({to: alice.address, value })
+    const tx = await relayer.multisend([populatedTx as any])
+    await tx.wait()
+    expect(initialBalance.sub(await alice.getBalance()).toNumber()).to.be.lessThan(utils.parseEther('0.001').toNumber()) //just accounting for gas
+  })
+
+  it("accepts value on contract call", async () => {
     await walletMaker.deployWallet(alice.address);
     const value = utils.parseEther('2.2')
 
