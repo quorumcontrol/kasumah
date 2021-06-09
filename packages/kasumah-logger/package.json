@@ -15,7 +15,7 @@
     "url": "git+https://github.com/quorumcontrol/kasumah.git"
   },
   "scripts": {
-    "build": "hardhat compile && rm -r types && npm run typechain && tsc",
+    "build": "./scripts/release.sh",
     "typechain": "typechain 'artifacts/!(build-info)/**/+([a-zA-Z0-9]).json' --target ethers-v5",
     "test": "hardhat test"
   },
