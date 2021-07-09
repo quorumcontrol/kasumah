@@ -23,6 +23,14 @@ import { backOff } from "exponential-backoff";
 
 const log = debug("GnosisBiconomy");
 
+interface GnosisBiconomyRelayerOptions {
+  relayAttempts: number
+}
+
+const defaultOptions:GnosisBiconomyRelayerOptions = {
+  relayAttempts: 20,
+}
+
 interface GnosisBiconomyRelayerConstrutorArgs {
   userSigner: Signer; // used to sign the gasless txs
   targetChainProvider: providers.Provider;
@@ -30,6 +38,7 @@ interface GnosisBiconomyRelayerConstrutorArgs {
   apiKey: string;
   apiId: string;
   httpClient?: AxiosStatic;
+  options?: GnosisBiconomyRelayerOptions
 }
 
 export class GnosisBiconomy implements Relayer {
@@ -44,6 +53,7 @@ export class GnosisBiconomy implements Relayer {
   private voidSigner: VoidSigner;
   private successTopic: string;
   private httpClient: AxiosStatic;
+  private options: GnosisBiconomyRelayerOptions
 
   constructor({
     userSigner,
@@ -52,6 +62,7 @@ export class GnosisBiconomy implements Relayer {
     apiId,
     targetChainProvider,
     httpClient,
+    options
   }: GnosisBiconomyRelayerConstrutorArgs) {
     this.userSigner = userSigner;
     this.voidSigner = new VoidSigner(
@@ -63,6 +74,7 @@ export class GnosisBiconomy implements Relayer {
     this.targetChainProvider = targetChainProvider;
     this.apiId = apiId;
     this.apiKey = apiKey;
+    this.options = {...defaultOptions, ...(options || {})}
 
     const voidSafe = this.safeFactory.attach(constants.AddressZero);
     this.successTopic = voidSafe.interface.getEventTopic(
@@ -125,20 +137,20 @@ export class GnosisBiconomy implements Relayer {
         async () => {
           const tx = await this.voidSigner.provider?.getTransaction(txHash);
           if (!tx) {
-            throw new Error("missing tx - inside backoff");
+            throw new Error(`missing tx (${txHash}) - inside backoff`);
           }
           log("returning tx: ", tx);
           return tx;
         },
         {
-          numOfAttempts: 10,
+          numOfAttempts: this.options.relayAttempts,
           retry: (e, attempts) => {
             console.dir(e);
-            console.error(`error fetching Tx, retrying. attempt: ${attempts}`);
+            console.error(`error fetching Tx (${txHash}), retrying. attempt: ${attempts}`);
             return true;
           },
-          startingDelay: 700,
-          maxDelay: 10000, // max 10s delays
+          startingDelay: 2000,
+          maxDelay: 15000, // max 10s delays
         }
       );
       if (!tx) {
@@ -191,7 +203,7 @@ export class GnosisBiconomy implements Relayer {
           );
         },
         {
-          numOfAttempts: 5,
+          numOfAttempts: this.options.relayAttempts,
           retry: (e, attempts) => {
             console.dir(e);
             console.error(
@@ -200,7 +212,7 @@ export class GnosisBiconomy implements Relayer {
             return true;
           },
           startingDelay: 700,
-          maxDelay: 5000, // max 10s delays
+          maxDelay: 5000,
         }
       );
       log("resp: ", resp);
