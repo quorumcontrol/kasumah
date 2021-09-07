@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "./scripts/release.sh",
-    "typechain": "typechain 'artifacts/!(build-info)/**/+([a-zA-Z0-9]).json' --target ethers-v5",
+    "typechain": "typechain '{artifacts/!(build-info)/**/+([a-zA-Z0-9]).json,./node_modules/@openzeppelin/contracts/build/contracts/ERC1155PresetMinterPauser.json}' --target ethers-v5",
     "test": "hardhat test"
   },
   "bugs": {
