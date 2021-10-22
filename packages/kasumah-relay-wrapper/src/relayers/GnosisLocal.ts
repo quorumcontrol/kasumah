@@ -1,10 +1,11 @@
 import { OPERATION, WalletMaker } from "kasumah-wallet";
 import { GnosisSafe__factory } from "kasumah-wallet/dist/types/ethers-contracts/factories/GnosisSafe__factory";
-import { Signer, Contract, PopulatedTransaction, ContractTransaction } from "ethers";
+import { Signer, Contract, PopulatedTransaction, ContractTransaction, BigNumber } from "ethers";
 import { Relayer } from "./types";
 import { multisendTx, safeFromPopulated, safeTx, MULTI_SEND_ADDR } from './GnosisHelpers';
 import debug from 'debug'
 import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts";
+import Queue from "queue-promise";
 
 const log = debug('GnosisLocalRelayer')
 
@@ -19,30 +20,56 @@ export class GnosisLocalRelayer implements Relayer {
   userSigner: Signer; // the signer used to sign transactions
   walletMaker: WalletMaker;
   safeFactory: GnosisSafe__factory;
+  private nonce:Promise<BigNumber>;
+  private safe:Promise<GnosisSafe>;
+  private userWalletAddr:Promise<string>;
+  private queue:Queue;
 
   constructor({
     transmitSigner,
     userSigner,
     chainId,
   }: GnosisLocalRelayerConstrutorArgs) {
+    this.queue = new Queue({
+      concurrent: 1,
+      interval: 1000
+    });
+
     this.userSigner = userSigner;
     this.transmitSigner = transmitSigner;
     this.walletMaker = new WalletMaker({ signer: transmitSigner, chainId });
     this.safeFactory = new GnosisSafe__factory(transmitSigner);
+    const userAddr = this.userSigner.getAddress();
+    this.userWalletAddr = userAddr.then((userAddr) => {
+       return this.walletMaker.walletAddressForUser(
+        userAddr
+      );
+    })
+    this.safe = this.userWalletAddr.then((userWalletAddr) => {
+      return this.safeFactory.attach(userWalletAddr);
+    })
+    this.nonce = this.safe.then((safe) => safe.nonce())
   }
 
   async multisend(txs:PopulatedTransaction[]):Promise<ContractTransaction> {
-    const multiTx = await multisendTx(txs)
-    const userAddr = await this.userSigner.getAddress();
+    return new Promise(async (resolve,reject) => {
+      this.queue.enqueue(async () => {
+        try {
+          const multiTx = await multisendTx(txs)
+          const safe = await this.safe
+          const userWalletAddr = await this.userWalletAddr
+          const nonce = await this.nonce
+          this.nonce = Promise.resolve(nonce.add(1))
 
-    const userWalletAddr = await this.walletMaker.walletAddressForUser(
-      userAddr
-    );
+          const [tx] = await safeFromPopulated(safe, nonce, this.userSigner, userWalletAddr, MULTI_SEND_ADDR, multiTx.data!, OPERATION.DELEGATE_CALL, { gasLimit: 9500000 })
+          resolve(this.sendTx(safe, tx))
+        } catch(err) {
+          this.nonce = (await this.safe).nonce()
+          reject(err)
+        }
+      })
+    })
 
-    const safe = this.safeFactory.attach(userWalletAddr);
-
-    const [tx] = await safeFromPopulated(safe, this.userSigner, userWalletAddr, MULTI_SEND_ADDR, multiTx.data!, OPERATION.DELEGATE_CALL, { gasLimit: 9500000 })
-    return this.sendTx(safe, tx)
   }
 
   private async sendTx(safe:GnosisSafe, tx:PopulatedTransaction) {
@@ -60,31 +87,38 @@ export class GnosisLocalRelayer implements Relayer {
     return respP
   }
 
-  async transmit(to: Contract, funcName: string, ...args: any) {
-    log("transmitting")
-    const userAddr = await this.userSigner.getAddress();
-
-    const userWalletAddr = await this.walletMaker.walletAddressForUser(
-      userAddr
-    );
-    const safe = this.safeFactory.attach(userWalletAddr);
-    log("userAddr: ", userAddr, " wallet: ", userWalletAddr);
-
-      // TODO: explicitly see if the last argument has a 'value' and nothing else and it it does, allow merging it
-    const lastArg = args.slice(-1)[0]
-    let newArgs = args
-    if (lastArg && lastArg.hasOwnProperty('value')) {
-      lastArg.gasLimit = 9500000
-      newArgs = args.slice(0,-1).concat([lastArg])
-    } else {
-      newArgs = [...args,{
-        gasLimit: 9500000
-      }]
-    }
-
-    const [tx] = await safeTx(safe, this.userSigner, userWalletAddr, to, funcName, ...newArgs)
-
-    log('sending tx: ', tx)
-    return this.sendTx(safe, tx)
+  async transmit(to: Contract, funcName: string, ...args: any):Promise<ContractTransaction> {
+    return new Promise(async (resolve,reject) => {
+      this.queue.enqueue(async () => {
+        try {
+          log("transmitting")
+          const userWalletAddr = await this.userWalletAddr
+          const safe = await this.safe
+          log("wallet: ", userWalletAddr);
+          const nonce = await this.nonce
+          this.nonce = Promise.resolve(nonce.add(1))
+          
+            // TODO: explicitly see if the last argument has a 'value' and nothing else and it it does, allow merging it
+          const lastArg = args.slice(-1)[0]
+          let newArgs = args
+          if (lastArg && lastArg.hasOwnProperty('value')) {
+            lastArg.gasLimit = 9500000
+            newArgs = args.slice(0,-1).concat([lastArg])
+          } else {
+            newArgs = [...args,{
+              gasLimit: 9500000
+            }]
+          }
+      
+          const [tx] = await safeTx(safe, nonce, this.userSigner, userWalletAddr, to, funcName, ...newArgs)
+      
+          log('sending tx: ', tx)
+          resolve(this.sendTx(safe, tx))
+        } catch(err) {
+          this.nonce = (await this.safe).nonce()
+          reject(err)
+        }
+      })
+    })
   }
 }

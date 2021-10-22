@@ -24,6 +24,7 @@ export type ExecParams = Parameters<GnosisSafe["execTransaction"]>;
 
 export async function safeFromPopulated(
   safe: GnosisSafe,
+  nonce: BigNumber,
   userSigner: Signer,
   userWalletAddr: string,
   to: Address,
@@ -31,7 +32,6 @@ export async function safeFromPopulated(
   operation: OPERATION,
   overrides?: PayableOverrides
 ): Promise<[PopulatedTransaction, ExecParams]> {
-  const nonce = await safe.nonce();
 
   let value = constants.Zero;
   if (overrides && overrides.hasOwnProperty("value")) {
@@ -77,6 +77,7 @@ export async function safeFromPopulated(
 
 export async function safeTx(
   safe: GnosisSafe,
+  nonce: BigNumber,
   userSigner: Signer,
   userWalletAddr: string,
   to: Contract,
@@ -97,6 +98,7 @@ export async function safeTx(
 
   return safeFromPopulated(
     safe,
+    nonce,
     userSigner,
     userWalletAddr,
     to.address,

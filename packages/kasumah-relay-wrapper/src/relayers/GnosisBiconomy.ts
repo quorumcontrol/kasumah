@@ -1,6 +1,7 @@
 import { OPERATION, WalletMaker } from "kasumah-wallet";
 import { GnosisSafe__factory } from "kasumah-wallet/dist/types/ethers-contracts/factories/GnosisSafe__factory";
 import {
+  BigNumber,
   Signer,
   Contract,
   VoidSigner,
@@ -20,6 +21,7 @@ import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts/GnosisSaf
 import axios, { AxiosStatic } from "axios";
 import debug from "debug";
 import { backOff } from "exponential-backoff";
+import Queue from "queue-promise";
 
 const log = debug("GnosisBiconomy");
 
@@ -53,7 +55,11 @@ export class GnosisBiconomy implements Relayer {
   private voidSigner: VoidSigner;
   private successTopic: string;
   private httpClient: AxiosStatic;
-  private options: GnosisBiconomyRelayerOptions
+  private options: GnosisBiconomyRelayerOptions;
+  private nonce:Promise<BigNumber>;
+  private safe:Promise<GnosisSafe>;
+  private userWalletAddr:Promise<string>;
+  private queue:Queue;
 
   constructor({
     userSigner,
@@ -64,6 +70,11 @@ export class GnosisBiconomy implements Relayer {
     httpClient,
     options
   }: GnosisBiconomyRelayerConstrutorArgs) {
+    this.queue = new Queue({
+      concurrent: 1,
+      interval: 1000
+    });
+
     this.userSigner = userSigner;
     this.voidSigner = new VoidSigner(
       constants.AddressZero,
@@ -80,6 +91,15 @@ export class GnosisBiconomy implements Relayer {
     this.successTopic = voidSafe.interface.getEventTopic(
       "ExecutionSuccess(bytes32,uint256)"
     );
+    this.userWalletAddr = this.userSigner.getAddress().then((userAddr) => {
+      return this.walletMaker.walletAddressForUser(
+        userAddr
+      );
+    });
+    this.safe = this.userWalletAddr.then((userWalletAddr) => {
+      return this.safeFactory.attach(userWalletAddr)
+    })
+    this.nonce = this.safe.then((safe) => safe.nonce())
 
     // useful for testing
     if (httpClient) {
@@ -91,44 +111,57 @@ export class GnosisBiconomy implements Relayer {
   }
 
   async multisend(txs: PopulatedTransaction[]): Promise<ContractTransaction> {
-    const multiTx = await multisendTx(txs);
-    const userAddr = await this.userSigner.getAddress();
-
-    const userWalletAddr = await this.walletMaker.walletAddressForUser(
-      userAddr
-    );
-
-    const safe = this.safeFactory.attach(userWalletAddr);
-
-    const [_, execArgs] = await safeFromPopulated(
-      safe,
-      this.userSigner,
-      userWalletAddr,
-      MULTI_SEND_ADDR,
-      multiTx.data!,
-      OPERATION.DELEGATE_CALL
-    );
-    return this.sendSignedTransaction(userWalletAddr, userAddr, execArgs);
+    return new Promise(async (resolve, reject) => {
+      this.queue.enqueue(async () => {
+        try {
+          const multiTx = await multisendTx(txs);
+          const userAddr = await this.userSigner.getAddress();
+          const userWalletAddr = await this.userWalletAddr
+          const nonce = await this.nonce
+          this.nonce = Promise.resolve(nonce.add(1))
+          const [_, execArgs] = await safeFromPopulated(
+            await this.safe,
+            nonce,
+            this.userSigner,
+            userWalletAddr,
+            MULTI_SEND_ADDR,
+            multiTx.data!,
+            OPERATION.DELEGATE_CALL
+          );
+          resolve(this.sendSignedTransaction(userWalletAddr, userAddr, execArgs))
+        } catch (err) {
+          this.nonce = (await this.safe).nonce()
+          reject(err)
+        }
+      })
+    })
   }
 
-  async transmit(to: Contract, funcName: string, ...args: any) {
-    const userAddr = await this.userSigner.getAddress();
+  async transmit(to: Contract, funcName: string, ...args: any):Promise<ContractTransaction> {
+    return new Promise(async (resolve,reject) => {
+      try {
+        const userAddr = await this.userSigner.getAddress();
+        const userWalletAddr = await this.userWalletAddr;
+        const safe = await this.safe;
+        log("transmit: userAddr: ", userAddr, " wallet: ", userWalletAddr);
+        const nonce = await this.nonce
+        this.nonce = Promise.resolve(nonce.add(1))
 
-    const userWalletAddr = await this.walletMaker.walletAddressForUser(
-      userAddr
-    );
-    const safe = this.safeFactory.attach(userWalletAddr);
-    log("transmit: userAddr: ", userAddr, " wallet: ", userWalletAddr);
-
-    const [, execArgs] = await safeTx(
-      safe,
-      this.userSigner,
-      userWalletAddr,
-      to,
-      funcName,
-      ...args
-    );
-    return this.sendSignedTransaction(userWalletAddr, userAddr, execArgs);
+        const [, execArgs] = await safeTx(
+          safe,
+          nonce,
+          this.userSigner,
+          userWalletAddr,
+          to,
+          funcName,
+          ...args
+        );
+        resolve(this.sendSignedTransaction(userWalletAddr, userAddr, execArgs));
+      } catch(err) {
+        this.nonce = (await this.safe).nonce()
+        reject(err)
+      }
+    })
   }
 
   private async txFromHash(txHash: string) {
@@ -217,7 +250,7 @@ export class GnosisBiconomy implements Relayer {
       );
       log("resp: ", resp);
       return this.txFromHash(resp.data.txHash);
-    } catch (error) {
+    } catch (error:any) {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
