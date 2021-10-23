@@ -95,36 +95,51 @@ describe("GnosisBiconomy", () => {
     expect(await echo.publicMapping(utils.formatBytes32String('multi2'))).to.equal(utils.formatBytes32String('send2'));
   })
 
-  it("sends the tx to biconomy", async () => {
-    await walletMaker.deployWallet(alice.address);
+  describe('sending transactions', () => {
+    let relayer:GnosisBiconomy
+    let wrapped:Echo
 
-    const factory = new GnosisSafe__factory(deployer);
+    beforeEach(async () => {
+      await walletMaker.deployWallet(alice.address);
 
-    // mock out biconomy to do the local relay and return a response similar to what they do
-    axiosMock.onPost().reply(async (config) => {
-      const postedData = JSON.parse(config.data);
-      const params: ExecParams = postedData.params;
-      const safe = factory.attach(postedData.to);
-      const tx = await safe.execTransaction(...params);
+      const factory = new GnosisSafe__factory(deployer);
 
-      return [200, { txHash: tx.hash }];
+      // mock out biconomy to do the local relay and return a response similar to what they do
+      axiosMock.onPost().reply(async (config) => {
+        const postedData = JSON.parse(config.data);
+        const params: ExecParams = postedData.params;
+        const safe = factory.attach(postedData.to);
+        const tx = await safe.execTransaction(...params);
+  
+        return [200, { txHash: tx.hash }];
+      });
+      relayer = new GnosisBiconomy({
+        apiKey: "testkey",
+        apiId: "testid",
+        userSigner: alice,
+        chainId,
+        targetChainProvider: deployer.provider!,
+        httpClient: axios,
+      });
+      wrapped = wrapContract<Echo>(echo, relayer);
+    })
+
+    it('sends back to back transactions sent at the same time (queue test)', async () => {
+      const value2 = utils.formatBytes32String("value2");
+      const responses = await Promise.all([
+        wrapped.setMapping(testKey, testValue),
+        wrapped.setMapping(testKey, value2)
+      ])
+      await Promise.all(responses.map((tx) => tx.wait()))
+      expect(await echo.publicMapping(testKey)).to.equal(value2);
+    })
+  
+    it("sends the tx to biconomy", async () => {  
+      const resp = await wrapped.setMapping(testKey, testValue);
+      await resp.wait();
+      expect(await echo.publicMapping(testKey)).to.equal(testValue);
     });
-
-    const relayer = new GnosisBiconomy({
-      apiKey: "testkey",
-      apiId: "testid",
-      userSigner: alice,
-      chainId,
-      targetChainProvider: deployer.provider!,
-      httpClient: axios,
-    });
-
-    const wrapped = wrapContract<Echo>(echo, relayer);
-
-    const resp = await wrapped.setMapping(testKey, testValue);
-    await resp.wait();
-    expect(await echo.publicMapping(testKey)).to.equal(testValue);
-  });
+  })
 
   it('supports a pure value transfer', async () => {
     await walletMaker.deployWallet(alice.address);

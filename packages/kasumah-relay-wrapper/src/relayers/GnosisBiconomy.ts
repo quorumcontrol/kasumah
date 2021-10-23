@@ -26,12 +26,12 @@ import Queue from "queue-promise";
 const log = debug("GnosisBiconomy");
 
 interface GnosisBiconomyRelayerOptions {
-  relayAttempts: number
+  relayAttempts: number;
 }
 
-const defaultOptions:GnosisBiconomyRelayerOptions = {
+const defaultOptions: GnosisBiconomyRelayerOptions = {
   relayAttempts: 20,
-}
+};
 
 interface GnosisBiconomyRelayerConstrutorArgs {
   userSigner: Signer; // used to sign the gasless txs
@@ -40,7 +40,7 @@ interface GnosisBiconomyRelayerConstrutorArgs {
   apiKey: string;
   apiId: string;
   httpClient?: AxiosStatic;
-  options?: GnosisBiconomyRelayerOptions
+  options?: GnosisBiconomyRelayerOptions;
 }
 
 export class GnosisBiconomy implements Relayer {
@@ -56,10 +56,10 @@ export class GnosisBiconomy implements Relayer {
   private successTopic: string;
   private httpClient: AxiosStatic;
   private options: GnosisBiconomyRelayerOptions;
-  private nonce:Promise<BigNumber>;
-  private safe:Promise<GnosisSafe>;
-  private userWalletAddr:Promise<string>;
-  private queue:Queue;
+  private nonce: Promise<BigNumber>;
+  private safe: Promise<GnosisSafe>;
+  private userWalletAddr: Promise<string>;
+  private queue: Queue;
 
   constructor({
     userSigner,
@@ -68,11 +68,11 @@ export class GnosisBiconomy implements Relayer {
     apiId,
     targetChainProvider,
     httpClient,
-    options
+    options,
   }: GnosisBiconomyRelayerConstrutorArgs) {
     this.queue = new Queue({
       concurrent: 1,
-      interval: 1000
+      interval: 1000,
     });
 
     this.userSigner = userSigner;
@@ -85,21 +85,19 @@ export class GnosisBiconomy implements Relayer {
     this.targetChainProvider = targetChainProvider;
     this.apiId = apiId;
     this.apiKey = apiKey;
-    this.options = {...defaultOptions, ...(options || {})}
+    this.options = { ...defaultOptions, ...(options || {}) };
 
     const voidSafe = this.safeFactory.attach(constants.AddressZero);
     this.successTopic = voidSafe.interface.getEventTopic(
       "ExecutionSuccess(bytes32,uint256)"
     );
     this.userWalletAddr = this.userSigner.getAddress().then((userAddr) => {
-      return this.walletMaker.walletAddressForUser(
-        userAddr
-      );
+      return this.walletMaker.walletAddressForUser(userAddr);
     });
     this.safe = this.userWalletAddr.then((userWalletAddr) => {
-      return this.safeFactory.attach(userWalletAddr)
-    })
-    this.nonce = this.safe.then((safe) => safe.nonce())
+      return this.safeFactory.attach(userWalletAddr);
+    });
+    this.nonce = this.safe.then((safe) => safe.nonce());
 
     // useful for testing
     if (httpClient) {
@@ -116,9 +114,9 @@ export class GnosisBiconomy implements Relayer {
         try {
           const multiTx = await multisendTx(txs);
           const userAddr = await this.userSigner.getAddress();
-          const userWalletAddr = await this.userWalletAddr
-          const nonce = await this.nonce
-          this.nonce = Promise.resolve(nonce.add(1))
+          const userWalletAddr = await this.userWalletAddr;
+          const nonce = await this.nonce;
+          this.nonce = Promise.resolve(nonce.add(1));
           const [_, execArgs] = await safeFromPopulated(
             await this.safe,
             nonce,
@@ -128,40 +126,50 @@ export class GnosisBiconomy implements Relayer {
             multiTx.data!,
             OPERATION.DELEGATE_CALL
           );
-          resolve(this.sendSignedTransaction(userWalletAddr, userAddr, execArgs))
+          resolve(
+            this.sendSignedTransaction(userWalletAddr, userAddr, execArgs)
+          );
         } catch (err) {
-          this.nonce = (await this.safe).nonce()
-          reject(err)
+          this.nonce = (await this.safe).nonce();
+          reject(err);
         }
-      })
-    })
+      });
+    });
   }
 
-  async transmit(to: Contract, funcName: string, ...args: any):Promise<ContractTransaction> {
-    return new Promise(async (resolve,reject) => {
-      try {
-        const userAddr = await this.userSigner.getAddress();
-        const userWalletAddr = await this.userWalletAddr;
-        const safe = await this.safe;
-        log("transmit: userAddr: ", userAddr, " wallet: ", userWalletAddr);
-        const nonce = await this.nonce
-        this.nonce = Promise.resolve(nonce.add(1))
+  async transmit(
+    to: Contract,
+    funcName: string,
+    ...args: any
+  ): Promise<ContractTransaction> {
+    return new Promise(async (resolve, reject) => {
+      this.queue.enqueue(async () => {
+        try {
+          const userAddr = await this.userSigner.getAddress();
+          const userWalletAddr = await this.userWalletAddr;
+          const safe = await this.safe;
+          log("transmit: userAddr: ", userAddr, " wallet: ", userWalletAddr);
+          const nonce = await this.nonce;
+          this.nonce = Promise.resolve(nonce.add(1));
 
-        const [, execArgs] = await safeTx(
-          safe,
-          nonce,
-          this.userSigner,
-          userWalletAddr,
-          to,
-          funcName,
-          ...args
-        );
-        resolve(this.sendSignedTransaction(userWalletAddr, userAddr, execArgs));
-      } catch(err) {
-        this.nonce = (await this.safe).nonce()
-        reject(err)
-      }
-    })
+          const [, execArgs] = await safeTx(
+            safe,
+            nonce,
+            this.userSigner,
+            userWalletAddr,
+            to,
+            funcName,
+            ...args
+          );
+          resolve(
+            this.sendSignedTransaction(userWalletAddr, userAddr, execArgs)
+          );
+        } catch (err) {
+          this.nonce = (await this.safe).nonce();
+          reject(err);
+        }
+      });
+    });
   }
 
   private async txFromHash(txHash: string) {
@@ -179,7 +187,9 @@ export class GnosisBiconomy implements Relayer {
           numOfAttempts: this.options.relayAttempts,
           retry: (e, attempts) => {
             console.dir(e);
-            console.error(`error fetching Tx (${txHash}), retrying. attempt: ${attempts}`);
+            console.error(
+              `error fetching Tx (${txHash}), retrying. attempt: ${attempts}`
+            );
             return true;
           },
           startingDelay: 2000,
@@ -250,7 +260,7 @@ export class GnosisBiconomy implements Relayer {
       );
       log("resp: ", resp);
       return this.txFromHash(resp.data.txHash);
-    } catch (error:any) {
+    } catch (error: any) {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
