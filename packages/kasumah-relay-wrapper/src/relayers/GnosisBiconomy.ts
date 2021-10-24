@@ -126,12 +126,16 @@ export class GnosisBiconomy implements Relayer {
             multiTx.data!,
             OPERATION.DELEGATE_CALL
           );
-          const data = await this.sendSignedTransaction(
+          const resp = await this.sendSignedTransaction(
             userWalletAddr,
             userAddr,
             execArgs
           );
-          resolve(data);
+          resp.wait().then(() => {
+            resolve(resp)
+          }).catch((err) => {
+            reject(err)
+          })
         } catch (err) {
           this.nonce = (await this.safe).nonce();
           reject(err);
@@ -171,12 +175,16 @@ export class GnosisBiconomy implements Relayer {
             funcName,
             ...args
           );
-          const data = await this.sendSignedTransaction(
+          const resp = await this.sendSignedTransaction(
             userWalletAddr,
             userAddr,
             execArgs
           );
-          resolve(data);
+          resp.wait().then(() => {
+            resolve(resp)
+          }).catch((err) => {
+            reject(err)
+          })
         } catch (err) {
           this.nonce = (await this.safe).nonce();
           reject(err);
