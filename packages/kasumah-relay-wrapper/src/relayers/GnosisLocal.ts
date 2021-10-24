@@ -62,7 +62,8 @@ export class GnosisLocalRelayer implements Relayer {
           this.nonce = Promise.resolve(nonce.add(1))
 
           const [tx] = await safeFromPopulated(safe, nonce, this.userSigner, userWalletAddr, MULTI_SEND_ADDR, multiTx.data!, OPERATION.DELEGATE_CALL, { gasLimit: 9500000 })
-          resolve(this.sendTx(safe, tx))
+          const data = await this.sendTx(safe, tx)
+          resolve(data)
         } catch(err) {
           this.nonce = (await this.safe).nonce()
           reject(err)
@@ -113,7 +114,8 @@ export class GnosisLocalRelayer implements Relayer {
           const [tx] = await safeTx(safe, nonce, this.userSigner, userWalletAddr, to, funcName, ...newArgs)
       
           log('sending tx: ', tx)
-          resolve(this.sendTx(safe, tx))
+          const data = await this.sendTx(safe, tx)
+          resolve(data)
         } catch(err) {
           this.nonce = (await this.safe).nonce()
           reject(err)
