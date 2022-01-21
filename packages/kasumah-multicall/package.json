@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "dataloader": "^2.0.0",
-    "ethers": "^5.3.0",
+    "ethers": ">=5.3.0",
     "ethers-multicall": "^0.1.4"
   },
   "gitHead": "9830a27a3ebc9b70ed8efb78926a88c3ac88b690"
