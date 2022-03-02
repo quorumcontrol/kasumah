@@ -65,7 +65,7 @@ describe("GnosisBiconomy", () => {
     // mock out biconomy to do the local relay and return a response similar to what they do
     axiosMock.onPost().reply(async (config) => {
       const postedData = JSON.parse(config.data);
-      const params: ExecParams = [...postedData.params, {gasLimit: 9500000}] as ExecParams;
+      const params: ExecParams = [...postedData.params, {gasLimit: 9500000}] as any as ExecParams;
       
       const safe = factory.attach(postedData.to);
       const tx = await safe.execTransaction(...params);
@@ -139,6 +139,46 @@ describe("GnosisBiconomy", () => {
       await resp.wait();
       expect(await echo.publicMapping(testKey)).to.equal(testValue);
     });
+  })
+
+  it('handles the new retry wrapper', async () => {
+    const badHash = '0x832c6ab5ad1b41221437f3365872497c9bfb1573df861151a77beaf8e3be0000'
+    await walletMaker.deployWallet(alice.address);
+
+    const factory = new GnosisSafe__factory(deployer);
+
+    let originalConfigData:any
+    // mock out biconomy return a bad hash at first, but then a good hash
+    axiosMock.onPost().reply(async (config) => {
+      originalConfigData = config.data
+      return [200, { txHash: badHash }];
+    });
+    axiosMock.onGet().reply(async (config) => {
+      if (config.url?.includes('resubmitted')) {
+        const postedData = JSON.parse(originalConfigData);
+        const params: ExecParams = postedData.params;
+        const safe = factory.attach(postedData.to);
+        const tx = await safe.execTransaction(...params);
+  
+        return [200, { oldHash: badHash, newHash: tx.hash }];
+      }
+      throw new Error('unknown url')
+    })
+    const relayer = new GnosisBiconomy({
+      apiKey: "testkey",
+      apiId: "testid",
+      userSigner: alice,
+      chainId,
+      targetChainProvider: deployer.provider!,
+      httpClient: axios,
+      options: {
+        relayAttempts: 1,
+      }
+    });
+    const wrapped = wrapContract<Echo>(echo, relayer);
+    const resp = await wrapped.setMapping(testKey, testValue);
+    await resp.wait();
+    expect(await echo.publicMapping(testKey)).to.equal(testValue);
   })
 
   it('supports a pure value transfer', async () => {

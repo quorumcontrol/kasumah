@@ -133,7 +133,7 @@ export class GnosisBiconomy implements Relayer {
           );
           resp.wait().then(() => {
             resolve(resp)
-          }).catch((err) => {
+          }).catch((err:any) => {
             reject(err)
           })
         } catch (err) {
@@ -182,7 +182,7 @@ export class GnosisBiconomy implements Relayer {
           );
           resp.wait().then(() => {
             resolve(resp)
-          }).catch((err) => {
+          }).catch((err:any) => {
             reject(err)
           })
         } catch (err) {
@@ -193,7 +193,37 @@ export class GnosisBiconomy implements Relayer {
     });
   }
 
-  private async txFromHash(txHash: string) {
+  private async getNewHash(existingHash:string) {
+    log('getting new hash from existing hash: ', existingHash)
+    const network = await this.voidSigner.provider?.getNetwork()
+    const networkid = network?.chainId
+    const resp = await backOff(
+      async () => {
+        const resp = await this.httpClient.get(
+          `https://api.biconomy.io/api/v1/meta-tx/resubmitted?transactionHash=${existingHash}&networkId=${networkid}`
+        );
+        if (resp.status !== 200) {
+          throw new Error(`Error getting biconomy tx hash. Status: ${resp.status}`)
+        }
+        return resp
+      },
+      {
+        numOfAttempts: this.options.relayAttempts,
+        retry: (e, attempts) => {
+          console.dir(e);
+          console.error(
+            `error getting new Tx hash from biconomy, retrying. attempt: ${attempts}`
+          );
+          return true;
+        },
+        startingDelay: 700,
+        maxDelay: 5000,
+      }
+    );
+    return resp.data.newHash
+  }
+
+  private async txFromHash(txHash: string):Promise<providers.TransactionResponse> {
     try {
       const tx = await backOff(
         async () => {
@@ -236,8 +266,18 @@ export class GnosisBiconomy implements Relayer {
       };
       return tx;
     } catch (error) {
-      console.error("error fetching tx: ", error);
-      throw error;
+      console.log('catching error: ', error)
+      try {
+        const newHash = await this.getNewHash(txHash)
+        if (newHash === txHash) {
+          throw new Error(`no transaction *and* the new hash is not different from the old hash: ${txHash}`)
+        }
+        log('new hash found: ', txHash, ' became ', newHash)
+        return this.txFromHash(newHash)
+      } catch (err) {
+        console.error("error fetching tx", txHash, error);
+        throw error;
+      }
     }
   }
 
