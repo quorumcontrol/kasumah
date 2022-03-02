@@ -1,6 +1,6 @@
 {
   "name": "kasumah-multicall",
-  "version": "0.0.44",
+  "version": "0.0.45",
   "description": "transparently wrap ethers contracts to use the Multicall contract",
   "author": "Topper Bowers <topper@quorumcontrol.com>",
   "homepage": "https://github.com/quorumcontrol/kasumah/tree/main/packages/kasumah-multicall",
