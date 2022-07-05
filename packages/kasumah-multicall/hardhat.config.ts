@@ -31,6 +31,22 @@ networks['matic'] = {
   chainId: 137,
 }
 
+networks['cryptoRomeNetworkTest'] = {
+  url: 'https://testnet-proxy.skalenodes.com/v1/whispering-turais',
+  chainId: 132333505628089,
+  accounts: [process.env.DEPLOYER_PRIVATE_KEY].filter(
+    (k) => !!k
+  ) as string[],
+}
+
+networks['cryptoRomeNetwork'] = {
+  url: 'https://mainnet.skalenodes.com/v1/haunting-devoted-deneb',
+  chainId: 1032942172,
+  accounts: [process.env.DEPLOYER_PRIVATE_KEY].filter(
+    (k) => !!k
+  ) as string[],
+}
+
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   namedAccounts: {

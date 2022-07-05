@@ -6,6 +6,8 @@ import DataLoader from 'dataloader'
 // matic mumbai
 setMulticallAddress(80001, '0x41eB847bD788F3219254371212C947793C392374')
 setMulticallAddress(137, '0x11ce4B23bD875D7F5C6a31084f55fDe1e9A87507')
+setMulticallAddress(132333505628089, '0x905Db52890481E40552D9b7429F3419DAF8bC085')
+setMulticallAddress(1032942172, '0xEF5bd9516021770d36E2E3e76737bA848AD79C26')
 
 export class MulticallWrapper {
     private ethcallProvider: Provider
