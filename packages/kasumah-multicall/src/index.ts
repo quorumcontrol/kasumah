@@ -25,6 +25,11 @@ export class MulticallWrapper {
     }
 
     async wrap<T=Contract>(contract:Contract) {
+        return this.syncWrap<T>(contract)
+    }
+
+    // wrap was original implemented as an async function, but it is no longer needed. However, we do not want to break the interface.
+    syncWrap<T=Contract>(contract:Contract) {
         const abi = contract.interface.fragments
         const multicallContract = new MulticallContract(contract.address, abi as any)
         const dataLoader = this.dataLoader
