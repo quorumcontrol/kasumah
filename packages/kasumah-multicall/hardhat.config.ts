@@ -39,6 +39,14 @@ networks['cryptoRomeNetworkTest'] = {
   ) as string[],
 }
 
+networks['skaleMTMTestnet'] = {
+  url: 'https://staging-v2.skalenodes.com/v1/rapping-zuben-elakrab',
+  chainId: 1305754875840118,
+  accounts: [process.env.DEPLOYER_PRIVATE_KEY].filter(
+    (k) => !!k
+  ) as string[],
+}
+
 networks['cryptoRomeNetwork'] = {
   url: 'https://mainnet.skalenodes.com/v1/haunting-devoted-deneb',
   chainId: 1032942172,
