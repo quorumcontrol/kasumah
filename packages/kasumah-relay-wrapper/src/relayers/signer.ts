@@ -89,10 +89,14 @@ export const signer = async function (
   }
 
   if (isLedger) {
+    log('using ledger for signature', await signer.getAddress(), to, value, data, operation, txGasEstimate, baseGasEstimate, gasPrice, txGasToken, refundReceiver, nonce)
     data = await safe.encodeTransactionData(to, value, data, operation, txGasEstimate, baseGasEstimate, gasPrice, txGasToken, refundReceiver, nonce, )
-    console.log("signing message using personal_sign for ledger")
+    log("signing message using personal_sign for ledger")
     const dataHash = Buffer.from(keccak256(data).slice(2), 'hex')
-    return knownVAdjust(adjustV(await signer.signMessage(dataHash)), 4)
+    log("hash: ", dataHash.toString('hex'))
+    const sig = await signer.signMessage(dataHash)
+    log("sig: ", sig)
+    return knownVAdjust(adjustV(sig), 4)
   }
 
   let typedData = {
