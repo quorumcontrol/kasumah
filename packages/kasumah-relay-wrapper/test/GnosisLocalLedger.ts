@@ -4,13 +4,12 @@ import { Echo } from "../types/ethers-contracts/Echo";
 import { utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { wrapContract } from "../src";
-import { GnosisLocalRelayer } from "../src/relayers";
+import { GnosisLocalLedgerRelayer } from "../src/relayers";
 import { WalletMaker, deployCanonicals } from "kasumah-wallet";
 import MockAdapter from "axios-mock-adapter";
 import axios from "axios";
-import { GnosisSafe__factory } from "kasumah-wallet/dist/types/ethers-contracts/factories/GnosisSafe__factory";
 
-describe("GnosisLocal", () => {
+describe("GnosisLocalLedger", () => {
   let chainId: number;
   let echo: Echo;
   let deployer: SignerWithAddress;
@@ -58,9 +57,9 @@ describe("GnosisLocal", () => {
   it("multisends", async () => {
     await walletMaker.deployWallet(alice.address);
 
-    const factory = new GnosisSafe__factory(deployer);
+    // const factory = new GnosisSafe__factory(deployer);
 
-    const relayer = new GnosisLocalRelayer({
+    const relayer = new GnosisLocalLedgerRelayer({
       transmitSigner: deployer,
       userSigner: alice,
       chainId,
@@ -92,7 +91,7 @@ describe("GnosisLocal", () => {
   it("executes transactions", async () => {
     await walletMaker.deployWallet(alice.address);
 
-    const relayer = new GnosisLocalRelayer({
+    const relayer = new GnosisLocalLedgerRelayer({
       transmitSigner: deployer,
       userSigner: alice,
       chainId,
@@ -114,7 +113,7 @@ describe("GnosisLocal", () => {
         value,
     })
 
-    const relayer = new GnosisLocalRelayer({
+    const relayer = new GnosisLocalLedgerRelayer({
       transmitSigner: deployer,
       userSigner: alice,
       chainId,

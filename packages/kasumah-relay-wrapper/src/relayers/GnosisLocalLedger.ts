@@ -15,7 +15,7 @@ interface GnosisLocalRelayerConstrutorArgs {
   chainId: number;
 }
 
-export class GnosisLocalRelayer implements Relayer {
+export class GnosisLocalLedgerRelayer implements Relayer {
   transmitSigner: Signer;
   userSigner: Signer; // the signer used to sign transactions
   walletMaker: WalletMaker;
@@ -61,7 +61,7 @@ export class GnosisLocalRelayer implements Relayer {
           const nonce = await this.nonce
           this.nonce = Promise.resolve(nonce.add(1))
 
-          const [tx] = await safeFromPopulated(safe, nonce, this.userSigner, userWalletAddr, MULTI_SEND_ADDR, multiTx.data!, OPERATION.DELEGATE_CALL, false, { gasLimit: 9500000 })
+          const [tx] = await safeFromPopulated(safe, nonce, this.userSigner, userWalletAddr, MULTI_SEND_ADDR, multiTx.data!, OPERATION.DELEGATE_CALL, true, { gasLimit: 9500000 })
           const resp = await this.sendTx(safe, tx)
           resp.wait().then(() => {
             resolve(resp)

@@ -30,7 +30,8 @@ export async function safeFromPopulated(
   to: Address,
   data: BytesLike,
   operation: OPERATION,
-  overrides?: PayableOverrides
+  isLedger?: boolean,
+  overrides?: PayableOverrides,
 ): Promise<[PopulatedTransaction, ExecParams]> {
 
   let value = constants.Zero;
@@ -39,6 +40,7 @@ export async function safeFromPopulated(
   }
 
   const sig = await signer(
+    safe,
     userSigner,
     userWalletAddr,
     to,
@@ -50,7 +52,8 @@ export async function safeFromPopulated(
     0,
     constants.AddressZero,
     constants.AddressZero,
-    nonce
+    nonce,
+    !!isLedger,
   );
 
   const execArgs: ExecParams = [
@@ -104,6 +107,7 @@ export async function safeTx(
     to.address,
     populatedTx.data,
     OPERATION.CALL,
+    false,
     override
   );
 }

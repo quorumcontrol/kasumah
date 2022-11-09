@@ -5,10 +5,10 @@ import {
   TypedDataDomain,
   TypedDataField,
 } from "@ethersproject/abstract-signer";
+import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts";
+import { keccak256 } from "ethers/lib/utils";
 
 const log = debug("GnosisSigner");
-
-const isNode = typeof window == "undefined" || window == null;
 
 const MIN_VALID_V_VALUE = 27;
 
@@ -26,6 +26,14 @@ export const adjustV = (signature: string): string => {
   if (sigV < MIN_VALID_V_VALUE) {
     sigV += MIN_VALID_V_VALUE;
   }
+
+  return signature.slice(0, -2) + sigV.toString(16);
+};
+
+export const knownVAdjust = (signature: string, num:number): string => {
+  let sigV = parseInt(signature.slice(-2), 16);
+
+  sigV += 4
 
   return signature.slice(0, -2) + sigV.toString(16);
 };
@@ -50,27 +58,18 @@ async function sendForSigning(
       typedData.message
     );
   }
-  // if no private key on the signer, then we'll use the provider interface to get the signature
-  // browser wallets (metamask, etc) use eth_signTypedData_v4 but node (hardhat) uses eth_signTypedData
-  // and as far as I can tell there is no way to detect the availability without trying it (which is a network request).
-  if (isNode) {
-    log("node environment, using eth_signTypedData");
-    return (signer.provider as any).send("eth_signTypedData", [
-      addr.toLowerCase(),
-      typedData,
-    ]).then((sig:string) => adjustV(sig));
-  } else {
-    log("browser environment, using eth_signTypedData_v4");
-    return (signer.provider as any).send("eth_signTypedData_v4", [
-      addr.toLowerCase(),
-      JSON.stringify(typedData),
-    ]).then((sig:string) => adjustV(sig));
-  }
+
+  log("browser environment, using eth_signTypedData_v4");
+  return (signer.provider as any).send("eth_signTypedData_v4", [
+    addr.toLowerCase(),
+    JSON.stringify(typedData),
+  ]).then((sig:string) => adjustV(sig));
 }
 
 type Address = string;
 
 export const signer = async function (
+  safe: GnosisSafe,
   signer: Signer,
   verifyingContract: Address,
   to: Address,
@@ -82,11 +81,20 @@ export const signer = async function (
   gasPrice: BigNumberish,
   txGasToken: Address,
   refundReceiver: Address,
-  nonce: BigNumberish
+  nonce: BigNumberish,
+  isLedger: boolean
 ) {
   if (!BigNumber.isBigNumber(value)) {
     value = BigNumber.from(value);
   }
+
+  if (isLedger) {
+    data = await safe.encodeTransactionData(to, value, data, operation, txGasEstimate, baseGasEstimate, gasPrice, txGasToken, refundReceiver, nonce, )
+    console.log("signing message using personal_sign for ledger")
+    const dataHash = Buffer.from(keccak256(data).slice(2), 'hex')
+    return knownVAdjust(adjustV(await signer.signMessage(dataHash)), 4)
+  }
+
   let typedData = {
     types: {
       EIP712Domain: [{ type: "address", name: "verifyingContract" }],

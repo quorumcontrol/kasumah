@@ -33,7 +33,7 @@
     "chai": "^4.2.0",
     "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.2.1",
-    "hardhat": "^2.0.6",
+    "hardhat": "^2.6.8",
     "hardhat-deploy": "^0.7.0-beta.39",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
