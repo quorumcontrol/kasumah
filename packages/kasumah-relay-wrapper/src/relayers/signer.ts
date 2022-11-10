@@ -1,6 +1,5 @@
 import { BigNumber, BigNumberish, BytesLike, Signer, Wallet } from "ethers";
 import { OPERATION } from "kasumah-wallet";
-import debug from "debug";
 import {
   TypedDataDomain,
   TypedDataField,
@@ -8,7 +7,7 @@ import {
 import { GnosisSafe } from "kasumah-wallet/dist/types/ethers-contracts";
 import { keccak256 } from "ethers/lib/utils";
 
-const log = debug("GnosisSigner");
+const log = console.log
 
 const MIN_VALID_V_VALUE = 27;
 
@@ -98,6 +97,7 @@ export const signer = async function (
     log("sig: ", sig)
     return knownVAdjust(adjustV(sig), 4)
   }
+  log('not using ledger for signature')
 
   let typedData = {
     types: {
